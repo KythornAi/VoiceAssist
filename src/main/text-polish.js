@@ -1,8 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { app } from 'electron'
 
 /**
  * Text Polish Pipeline
@@ -19,7 +17,10 @@ let misspellings = {}
 
 function loadDictionaries() {
     try {
-        const pairsPath = path.join(__dirname, 'dictionaries', 'uk-us-pairs.json')
+        const dictBase = app.isPackaged
+            ? path.join(process.resourcesPath, 'dictionaries')
+            : path.join(app.getAppPath(), 'src', 'main', 'dictionaries')
+        const pairsPath = path.join(dictBase, 'uk-us-pairs.json')
         const pairsData = JSON.parse(fs.readFileSync(pairsPath, 'utf8'))
 
         // US -> UK map (from the JSON as-is)
@@ -34,7 +35,7 @@ function loadDictionaries() {
             ukUsPairs[uk.toLowerCase()] = us
         }
 
-        const misspellPath = path.join(__dirname, 'dictionaries', 'common-misspellings.json')
+        const misspellPath = path.join(dictBase, 'common-misspellings.json')
         const misspellData = JSON.parse(fs.readFileSync(misspellPath, 'utf8'))
         misspellings = {}
         for (const [wrong, right] of Object.entries(misspellData.corrections)) {
