@@ -138,39 +138,18 @@ function syncUI() { broadcast('status-change', { ...state }) }
 // TEXT INJECTION (cross-platform clipboard + paste)
 // ================================================================
 
-// Track the last non-VoiceAssist app the user was in
-let lastFocusedApp = null
-
-function captureTargetApp() {
-    if (process.platform === 'darwin') {
-        try {
-            const app = execSync(
-                `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`,
-                { encoding: 'utf8' }
-            ).trim()
-            // Only store if it's not our own app
-            if (app && app !== 'VoiceAssist' && app !== 'Electron') {
-                lastFocusedApp = app
-            }
-        } catch { }
-    }
-}
-
 async function injectText(text) {
     const prev = clipboard.readText()
     clipboard.writeText(text + ' ')
 
-    // Allow time for OS clipboard buffer
-    await sleep(150)
+    // Hide our window so the user's app becomes frontmost again
+    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
+        controlStripWin.hide()
+    }
+    await sleep(200)
 
     try {
         if (process.platform === 'darwin') {
-            // Re-activate the target app and paste
-            const target = lastFocusedApp
-            if (target) {
-                execSync(`osascript -e 'tell application "${target}" to activate'`)
-                await sleep(100)
-            }
             execSync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`)
         } else if (process.platform === 'win32') {
             execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')"`)
@@ -179,9 +158,12 @@ async function injectText(text) {
         console.error('[VA] Text injection failed:', err.message)
     }
 
-    // Wait for the target app to process the paste before restoring clipboard
+    // Wait for paste, restore clipboard, show pill again
     await sleep(400)
     clipboard.writeText(prev)
+    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
+        controlStripWin.show()
+    }
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
@@ -296,7 +278,6 @@ function setTrayIcon(key) {
 function toggleDictation() { state.dictating ? stopDictation() : startDictation() }
 
 function startDictation() {
-    captureTargetApp()
     ensureAudioWindow()
     // Give audio window a moment to load before sending command
     if (audioWin.webContents.isLoading()) {
@@ -320,19 +301,17 @@ function stopDictation() {
 async function toggleReading() {
     if (state.reading) { stopReading(); return }
 
-    captureTargetApp()
+    // Hide our window so the user's app is frontmost for the Cmd+C
+    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
+        controlStripWin.hide()
+    }
 
-    // Brief pause to let fingers lift from hotkey modifiers
-    await sleep(150)
+    // Brief pause to let fingers lift from hotkey modifiers and app to refocus
+    await sleep(200)
 
-    // Re-activate the target app and copy selected text
+    // Copy the user's highlighted text
     try {
         if (process.platform === 'darwin') {
-            const target = lastFocusedApp
-            if (target) {
-                execSync(`osascript -e 'tell application "${target}" to activate'`)
-                await sleep(100)
-            }
             execSync(`osascript -e 'tell application "System Events" to keystroke "c" using command down'`)
         } else if (process.platform === 'win32') {
             execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^c')"`)
@@ -340,6 +319,11 @@ async function toggleReading() {
     } catch (err) { }
 
     await sleep(200) // Wait for OS clipboard to sync
+
+    // Show pill again
+    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
+        controlStripWin.show()
+    }
 
     const text = clipboard.readText().trim()
     if (text) startReading(text)
