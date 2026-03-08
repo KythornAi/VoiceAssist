@@ -187,6 +187,7 @@ export function renderControlStrip() {
       box-shadow: 0 0 10px rgba(255,255,255,0.2);
     }
     .mini-btn:active { transform: scale(0.9); }
+    button, .theme-toggle { touch-action: none; }
     /* Mini btn states */
     .mini-btn.dictating.active { color: #22C55E !important; background: rgba(34, 197, 94, 0.15); opacity: 1; }
     .mini-btn.reading.active { color: #3B82F6 !important; background: rgba(59, 130, 246, 0.15); opacity: 1; }
@@ -366,8 +367,8 @@ export function renderControlStrip() {
     }
   }
 
-  document.getElementById('btn-collapse').addEventListener('click', () => toggleMode('mini'))
-  document.getElementById('mini-btn-expand').addEventListener('click', () => toggleMode('full'))
+  document.getElementById('btn-collapse').addEventListener('pointerdown', () => toggleMode('mini'))
+  document.getElementById('mini-btn-expand').addEventListener('pointerdown', () => toggleMode('full'))
 
   // ── Theme toggle ──
   let isDark = true
@@ -377,7 +378,7 @@ export function renderControlStrip() {
     themeToggle.classList.toggle('light', !isDark)
   }
 
-  themeToggle.addEventListener('click', () => {
+  themeToggle.addEventListener('pointerdown', () => {
     isDark = !isDark
     const newTheme = isDark ? 'dark' : 'light'
     applyTheme(newTheme)
@@ -456,13 +457,13 @@ export function renderControlStrip() {
   const dictateAction = () => window.api.toggleDictation()
   const readAction = () => window.api.toggleReading()
 
-  document.getElementById('btn-dictate').addEventListener('click', dictateAction)
-  document.getElementById('mini-btn-dictate').addEventListener('click', dictateAction)
-  document.getElementById('btn-read').addEventListener('click', readAction)
-  document.getElementById('mini-btn-read').addEventListener('click', readAction)
+  document.getElementById('btn-dictate').addEventListener('pointerdown', dictateAction)
+  document.getElementById('mini-btn-dictate').addEventListener('pointerdown', dictateAction)
+  document.getElementById('btn-read').addEventListener('pointerdown', readAction)
+  document.getElementById('mini-btn-read').addEventListener('pointerdown', readAction)
 
-  document.getElementById('btn-history').addEventListener('click', () => window.api.openHistory())
-  document.getElementById('btn-settings').addEventListener('click', () => window.api.openSettings())
-  document.getElementById('btn-quit').addEventListener('click', () => window.api.quitApp())
-  document.getElementById('btn-close').addEventListener('click', () => window.api.hideWindow())
+  document.getElementById('btn-history').addEventListener('pointerdown', () => window.api.openHistory())
+  document.getElementById('btn-settings').addEventListener('pointerdown', () => window.api.openSettings())
+  document.getElementById('btn-quit').addEventListener('pointerdown', () => window.api.quitApp())
+  document.getElementById('btn-close').addEventListener('pointerdown', () => window.api.hideWindow())
 }
