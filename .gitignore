@@ -4,6 +4,9 @@ dist/
 *.dmg
 *.exe
 .DS_Store
-resources/bin/whisper-*
-resources/bin/piper-*
-resources/models/
+resources/bin/*
+!resources/bin/.gitkeep
+resources/models/*
+!resources/models/.gitkeep
+resources/voices/*
+!resources/voices/.gitkeep

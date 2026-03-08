@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { transcribe, checkWhisperReady } from './whisper-sidecar.js'
 import { polishText } from './text-polish.js'
+import { synthesise, checkPiperReady, listVoices } from './piper-sidecar.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -56,6 +57,7 @@ const DEFAULTS = {
     spellingLocale: 'uk',
     fixSpelling: true,
     fixGrammar: true,
+    piperVoice: '',
 }
 class JsonStore {
     constructor(fn) {
@@ -562,6 +564,24 @@ function setupIPC() {
             state.processing = false
             setTrayIcon('off'); syncUI()
             broadcast('show-error', { message: err.message })
+            throw err
+        }
+    })
+
+    // ── Piper TTS sidecar ────────────────────────────────────────────
+    ipcMain.handle('check-piper', () => checkPiperReady())
+    ipcMain.handle('list-piper-voices', () => listVoices())
+
+    ipcMain.handle('piper-speak', async (_, { text, voice, speed }) => {
+        try {
+            const wavBuffer = await synthesise(text, {
+                voice: voice || settings.get('piperVoice') || undefined,
+                speed: speed || settings.get('readingSpeed') || 1.0,
+            })
+            // Return as array so it can be sent over IPC
+            return { wav: Array.from(new Uint8Array(wavBuffer)) }
+        } catch (err) {
+            console.error('[VA] Piper TTS error:', err)
             throw err
         }
     })

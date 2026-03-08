@@ -135,29 +135,18 @@ export async function renderAudioCapture() {
     }
 
     // ── Reading Aloud & Translation ────────────────────────────────
-    let translator = null
-    let translatorLoading = false
 
-    async function loadTranslator(targetLang) {
-        if (translator || translatorLoading) return
-        translatorLoading = true
-
-        try {
-            console.log('[audio] Local translation not available (NLLB-200 removed with WASM migration).')
-            console.log('[audio] Use OpenAI API key for translation, or wait for native translation sidecar.')
-            // TODO Phase 3+: add native translation sidecar to replace WASM NLLB-200
-        } catch (err) {
-            console.error('[audio] Failed to load translator:', err)
-        }
-        translatorLoading = false
+    // Helper: play a WAV buffer (from Piper or OpenAI)
+    function playWavBuffer(uint8Array) {
+        const blob = new Blob([uint8Array], { type: 'audio/wav' })
+        const url = URL.createObjectURL(blob)
+        currentAudioEl = new Audio(url)
+        currentAudioEl.onended = () => { URL.revokeObjectURL(url); currentAudioEl = null; window.api.stopReading() }
+        currentAudioEl.onerror = () => { URL.revokeObjectURL(url); currentAudioEl = null; window.api.stopReading() }
+        currentAudioEl.play()
     }
 
-    const nllbLangCodes = {
-        'en': 'eng_Latn', 'fr': 'fra_Latn', 'de': 'deu_Latn',
-        'es': 'spa_Latn', 'zh': 'zho_Hans', 'ja': 'jpn_Jpan', 'ru': 'rus_Cyrl',
-    }
-
-    // ── Helper: speak with system voice ────────────────────────────
+    // Helper: speak with system voice (last-resort fallback)
     function speakWithSystemVoice(finalText, settings) {
         currentUtterance = new SpeechSynthesisUtterance(finalText)
         const voices = window.speechSynthesis.getVoices()
@@ -178,7 +167,7 @@ export async function renderAudioCapture() {
         const settings = await window.api.getSettings()
         let finalText = text
 
-        // Translate if requested
+        // Translate if requested (OpenAI only -- local translation removed with WASM migration)
         if (settings.translationLanguage && settings.translationLanguage !== 'none') {
             const langNames = { en: 'English', fr: 'French', de: 'German', es: 'Spanish', zh: 'Chinese', ja: 'Japanese', ru: 'Russian' }
             const targetLang = langNames[settings.translationLanguage] || settings.translationLanguage
@@ -205,21 +194,15 @@ export async function renderAudioCapture() {
                         finalText = data.choices?.[0]?.message?.content?.trim() || text
                     }
                 } catch (err) { console.error('[audio] Translation error:', err) }
-            } else {
-                await loadTranslator()
-                if (translator) {
-                    try {
-                        const tgt_lang = nllbLangCodes[settings.translationLanguage] || 'eng_Latn'
-                        const output = await translator(text, { tgt_lang, src_lang: 'eng_Latn' })
-                        finalText = output[0]?.translation_text || text
-                    } catch (err) { console.error('[audio] Local translation error:', err) }
-                }
             }
         }
 
+        // Voice priority: OpenAI (premium) > Piper (free, natural) > System voice (fallback)
         const isOpenAI = settings.voice && settings.voice.startsWith('openai:')
+        const isPiper = settings.voice && settings.voice.startsWith('piper:')
         const hasKey = settings.openaiApiKey && settings.openaiApiKey.length > 10
 
+        // 1. OpenAI TTS (premium)
         if (isOpenAI && hasKey) {
             const voiceName = settings.voice.split(':')[1]
             try {
@@ -236,18 +219,38 @@ export async function renderAudioCapture() {
                         speed: settings.readingSpeed || 1.0,
                     }),
                 })
-
                 if (resp.ok) {
                     const blob = await resp.blob()
-                    const url = URL.createObjectURL(blob)
-                    currentAudioEl = new Audio(url)
-                    currentAudioEl.onended = () => { URL.revokeObjectURL(url); currentAudioEl = null; window.api.stopReading() }
-                    currentAudioEl.onerror = () => { URL.revokeObjectURL(url); currentAudioEl = null; window.api.stopReading() }
-                    currentAudioEl.play()
+                    const arrayBuf = await blob.arrayBuffer()
+                    playWavBuffer(new Uint8Array(arrayBuf))
                     return
                 }
             } catch (err) { console.error('[audio] OpenAI TTS error:', err) }
         }
+
+        // 2. Piper TTS (free, local, natural-sounding)
+        // Use Piper if explicitly selected OR if no voice preference is set (default)
+        if (isPiper || !isOpenAI) {
+            try {
+                const piperStatus = await window.api.checkPiper()
+                if (piperStatus.ready) {
+                    const voiceFile = isPiper ? settings.voice.split(':')[1] : undefined
+                    const result = await window.api.piperSpeak(
+                        finalText,
+                        voiceFile,
+                        settings.readingSpeed || 1.0
+                    )
+                    if (result && result.wav) {
+                        playWavBuffer(new Uint8Array(result.wav))
+                        return
+                    }
+                }
+            } catch (err) {
+                console.warn('[audio] Piper TTS failed, falling back to system voice:', err.message)
+            }
+        }
+
+        // 3. System voice (last resort)
         speakWithSystemVoice(finalText, settings)
     })
 

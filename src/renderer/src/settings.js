@@ -392,7 +392,8 @@ export function renderSettings() {
                   </div>
                 </div>
                 <select id="voice-select" class="premium-select">
-                  <optgroup label="Premium AI Voices">
+                  <optgroup id="piper-voices-group" label="Piper Voices (Free, Natural)"></optgroup>
+                  <optgroup label="Premium AI Voices (Needs API Key)">
                     <option value="openai:alloy">Alloy (Balanced)</option>
                     <option value="openai:echo">Echo (Warm)</option>
                     <option value="openai:fable">Fable (Expressive)</option>
@@ -400,7 +401,7 @@ export function renderSettings() {
                     <option value="openai:nova">Nova (Energetic)</option>
                     <option value="openai:shimmer">Shimmer (Clear)</option>
                   </optgroup>
-                  <optgroup id="system-voices-group" label="System Voices"></optgroup>
+                  <optgroup id="system-voices-group" label="System Voices (Fallback)"></optgroup>
                 </select>
              </div>
              <div class="toggle-row">
@@ -639,6 +640,21 @@ export function renderSettings() {
     document.getElementById('lang-select').value = s.language || 'en-US'
     document.getElementById('auto-punct').checked = s.autoPunctuation !== false
 
+    // Load Piper voices
+    window.api.listPiperVoices().then(piperVoices => {
+      const piperGroup = document.getElementById('piper-voices-group')
+      if (piperGroup && piperVoices.length > 0) {
+        piperGroup.innerHTML = piperVoices.map(v => {
+          const label = v.voice.charAt(0).toUpperCase() + v.voice.slice(1)
+          const region = v.lang.includes('GB') ? 'UK' : v.lang.includes('US') ? 'US' : v.lang
+          return `<option value="piper:${v.file}">${label} - ${region} (${v.quality})</option>`
+        }).join('')
+      }
+      // Set voice after Piper voices are loaded
+      if (s.voice) document.getElementById('voice-select').value = s.voice
+    })
+
+    // Load system voices (fallback)
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices()
       if (voices.length === 0) return
@@ -705,6 +721,29 @@ export function renderSettings() {
     const testText = "Hi there, I am Voice Assist. You can use me to read any text out loud."
     const selectedUri = document.getElementById('voice-select').value
     const speed = Number(document.getElementById('speed-slider').value) || 1.0
+
+    // Piper TTS test
+    if (selectedUri && selectedUri.startsWith('piper:')) {
+      const btn = document.getElementById('test-voice')
+      btn.textContent = '⏳ Generating...'
+      btn.disabled = true
+      try {
+        const voiceFile = selectedUri.split(':')[1]
+        const result = await window.api.piperSpeak(testText, voiceFile, speed)
+        if (result && result.wav) {
+          const blob = new Blob([new Uint8Array(result.wav)], { type: 'audio/wav' })
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audio.onended = () => URL.revokeObjectURL(url)
+          audio.play()
+        }
+      } catch (err) {
+        alert('Piper TTS error: ' + err.message)
+      }
+      btn.textContent = '🔊 Test Voice'
+      btn.disabled = false
+      return
+    }
 
     // If an OpenAI voice is selected, test it via the API
     if (selectedUri && selectedUri.startsWith('openai:')) {

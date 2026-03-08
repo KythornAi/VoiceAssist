@@ -49,6 +49,11 @@ contextBridge.exposeInMainWorld('api', {
     transcribeAudio: (pcmArray) => ipcRenderer.invoke('transcribe-audio', pcmArray),
     checkWhisper: () => ipcRenderer.invoke('check-whisper'),
 
+    // Piper TTS
+    checkPiper: () => ipcRenderer.invoke('check-piper'),
+    listPiperVoices: () => ipcRenderer.invoke('list-piper-voices'),
+    piperSpeak: (text, voice, speed) => ipcRenderer.invoke('piper-speak', { text, voice, speed }),
+
     // ── Events pushed from main → all renderers ────────────────────
     onStatusChange: (cb) => {
         const h = (_, data) => cb(data)
