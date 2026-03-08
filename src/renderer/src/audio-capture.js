@@ -143,9 +143,9 @@ export async function renderAudioCapture() {
         translatorLoading = true
 
         try {
-            console.log('[audio] Loading translation model for TTS...')
-            const { pipeline } = await import('@xenova/transformers')
-            translator = await pipeline('translation', 'Xenova/nllb-200-distilled-600M')
+            console.log('[audio] Local translation not available (NLLB-200 removed with WASM migration).')
+            console.log('[audio] Use OpenAI API key for translation, or wait for native translation sidecar.')
+            // TODO Phase 3+: add native translation sidecar to replace WASM NLLB-200
         } catch (err) {
             console.error('[audio] Failed to load translator:', err)
         }
