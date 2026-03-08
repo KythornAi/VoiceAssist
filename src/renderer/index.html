@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src 'self' ws://localhost:* https://api.openai.com https://huggingface.co https://*.huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.hf.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src blob:; media-src 'self' blob:;" />
+    <title>VoiceAssist</title>
+    <!-- Transformers.js is loaded dynamically by the audio window to prevent Vite mangling -->
+    <script type="module" src="./renderer.js"></script>
+</head>
+
+<body></body>
+
+</html>
