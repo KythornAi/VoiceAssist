@@ -255,16 +255,20 @@ export function renderControlStrip() {
     /* Done button */
     .mini-done-btn {
       display: none;
-      align-items: center; gap: 6px;
+      align-items: center; gap: 8px;
       background: #2b8cee !important;
       color: #fff;
       border-radius: 9999px;
-      padding: 8px 26px 8px 18px;
+      padding: 9px 28px 9px 22px;
       font-size: 14px; font-weight: 600;
       font-family: inherit;
+      letter-spacing: 0.02em;
       transition: all 0.15s;
       box-shadow: 0 4px 12px rgba(43, 140, 238, 0.3);
       white-space: nowrap;
+    }
+    .mini-done-btn span {
+      color: #fff; font-size: 14px; font-weight: 600;
     }
     .mini-done-btn:hover { background: #2577d4 !important; }
     .mini-done-btn:active { transform: scale(0.95); }
@@ -430,8 +434,8 @@ export function renderControlStrip() {
         </button>
 
         <button class="mini-done-btn" id="mini-done-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" fill="#FFFFFF"/></svg>
-          <span style="color:#fff; font-size:13px; font-weight:600;">Done</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Done</span>
         </button>
 
         <button class="mini-expand" id="mini-btn-expand" title="Expand">
