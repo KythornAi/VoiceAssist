@@ -138,15 +138,40 @@ function syncUI() { broadcast('status-change', { ...state }) }
 // TEXT INJECTION (cross-platform clipboard + paste)
 // ================================================================
 
+// Track the user's app by bundle ID (captured when dictation/reading starts)
+let targetBundleId = null
+
+function captureTargetApp() {
+    if (process.platform === 'darwin') {
+        try {
+            const bid = execSync(
+                `osascript -e 'tell application "System Events" to get bundle identifier of first application process whose frontmost is true'`,
+                { encoding: 'utf8' }
+            ).trim()
+            if (bid && !bid.includes('electron') && !bid.includes('Electron')) {
+                targetBundleId = bid
+                console.log('[VA] Target app:', bid)
+            }
+        } catch { }
+    }
+}
+
+async function activateTargetApp() {
+    if (process.platform === 'darwin' && targetBundleId) {
+        try {
+            execSync(`osascript -e 'tell application id "${targetBundleId}" to activate'`)
+            await sleep(150)
+        } catch (err) {
+            console.warn('[VA] Could not activate target app:', err.message)
+        }
+    }
+}
+
 async function injectText(text) {
     const prev = clipboard.readText()
     clipboard.writeText(text + ' ')
 
-    // Hide our window so the user's app becomes frontmost again
-    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
-        controlStripWin.hide()
-    }
-    await sleep(200)
+    await activateTargetApp()
 
     try {
         if (process.platform === 'darwin') {
@@ -158,12 +183,8 @@ async function injectText(text) {
         console.error('[VA] Text injection failed:', err.message)
     }
 
-    // Wait for paste, restore clipboard, show pill again
     await sleep(400)
     clipboard.writeText(prev)
-    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
-        controlStripWin.show()
-    }
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
@@ -278,6 +299,7 @@ function setTrayIcon(key) {
 function toggleDictation() { state.dictating ? stopDictation() : startDictation() }
 
 function startDictation() {
+    captureTargetApp()
     ensureAudioWindow()
     // Give audio window a moment to load before sending command
     if (audioWin.webContents.isLoading()) {
@@ -301,15 +323,14 @@ function stopDictation() {
 async function toggleReading() {
     if (state.reading) { stopReading(); return }
 
-    // Hide our window so the user's app is frontmost for the Cmd+C
-    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
-        controlStripWin.hide()
-    }
+    captureTargetApp()
 
-    // Brief pause to let fingers lift from hotkey modifiers and app to refocus
-    await sleep(200)
+    // Brief pause to let fingers lift from hotkey modifiers
+    await sleep(150)
 
-    // Copy the user's highlighted text
+    // Activate the user's app and copy their selected text
+    await activateTargetApp()
+
     try {
         if (process.platform === 'darwin') {
             execSync(`osascript -e 'tell application "System Events" to keystroke "c" using command down'`)
@@ -319,11 +340,6 @@ async function toggleReading() {
     } catch (err) { }
 
     await sleep(200) // Wait for OS clipboard to sync
-
-    // Show pill again
-    if (process.platform === 'darwin' && controlStripWin && !controlStripWin.isDestroyed()) {
-        controlStripWin.show()
-    }
 
     const text = clipboard.readText().trim()
     if (text) startReading(text)
