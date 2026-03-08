@@ -165,15 +165,16 @@ export function renderControlStrip() {
     #strip.mini-mode {
       flex-direction: row;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 6px;
       border-radius: 9999px;
       height: 48px;
       width: 100%;
-      background: rgba(16, 25, 34, 0.85);
+      background: rgba(16, 25, 34, 0.9);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+      position: relative;
     }
     .mini-mode .strip-header,
     .mini-mode .menu-group,
@@ -186,129 +187,106 @@ export function renderControlStrip() {
       align-items: center;
       width: 100%;
       height: 100%;
-      padding: 0 4px;
-      gap: 4px;
+      padding: 0 2px;
+      gap: 6px;
       -webkit-app-region: drag;
     }
     #strip.mini-mode .mini-controls { display: flex; }
 
-    /* Red mic button (pill mode) */
-    .mini-mic-btn {
-      position: relative;
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      background: #EF4444;
-      border: none;
-      color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
+    /* All pill buttons base -- prevent Electron weirdness */
+    .mini-controls button {
       -webkit-app-region: no-drag;
+      border: none;
+      cursor: pointer;
+      padding: 0;
       flex-shrink: 0;
     }
-    .mini-mic-btn:hover { transform: scale(1.08); }
-    .mini-mic-btn:active { transform: scale(0.95); }
-    .mini-mic-btn svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2.5; }
-    .mini-mic-btn.idle { background: rgba(239, 68, 68, 0.7); }
-    .mini-mic-btn.idle svg { stroke: #fff; }
-    .mini-mic-btn.idle:hover { background: #EF4444; }
 
-    /* Pulse animation for recording */
-    .mini-mic-btn.recording {
-      animation: mic-pulse 2s infinite;
+    /* Red mic button */
+    .mini-mic-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #EF4444 !important;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
     }
+    .mini-mic-btn:hover { transform: scale(1.08); background: #DC2626 !important; }
+    .mini-mic-btn:active { transform: scale(0.95); }
+    .mini-mic-btn.recording { animation: mic-pulse 2s infinite; }
     @keyframes mic-pulse {
       0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
       70%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
-    /* Mini waveform */
+    /* Mini waveform -- tall bars like mockup */
     .mini-waveform {
-      display: flex; align-items: flex-end; gap: 2px;
-      height: 24px; padding: 0 4px;
+      display: flex; align-items: flex-end; gap: 2.5px;
+      height: 32px; padding: 0 6px;
       flex-shrink: 0;
     }
     .mini-waveform .bar {
-      width: 3px; height: 6px;
+      width: 3px;
       border-radius: 2px;
       background: linear-gradient(to top, #2b8cee, #60a5fa);
-      transition: height 0.1s;
+      transition: height 0.12s ease;
     }
-    .mini-waveform:not(.active) { opacity: 0.5; }
-    .mini-waveform:not(.active) .bar { height: 6px !important; }
 
-    /* Vertical separator in pill */
+    /* Vertical separator */
     .mini-sep {
-      width: 1px; height: 22px;
-      background: rgba(255, 255, 255, 0.15);
+      width: 1px; height: 24px;
+      background: rgba(255, 255, 255, 0.12);
       flex-shrink: 0;
-      margin: 0 6px;
     }
 
-    /* Action buttons in pill */
+    /* Action buttons (read, etc) */
     .mini-action {
       width: 36px; height: 36px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08); border: none;
-      color: #fff;
+      background: transparent;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.15s;
-      -webkit-app-region: no-drag;
-      flex-shrink: 0;
+      transition: all 0.15s;
     }
-    .mini-action:hover { background: rgba(255, 255, 255, 0.15); color: #fff; transform: scale(1.05); }
+    .mini-action:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
     .mini-action:active { transform: scale(0.9); }
-    .mini-action svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2; }
-    .mini-action.reading-active { color: #2b8cee; background: rgba(43, 140, 238, 0.2); }
-    .mini-action.reading-active svg { stroke: #2b8cee; }
+    .mini-action.reading-active { background: rgba(43, 140, 238, 0.2); }
+    .mini-action.reading-active svg { stroke: #2b8cee !important; }
 
-    /* Done button in pill */
+    /* Done button */
     .mini-done-btn {
       display: none;
       align-items: center; gap: 6px;
-      background: #2b8cee;
+      background: #2b8cee !important;
       color: #fff;
-      border: none;
       border-radius: 9999px;
-      padding: 6px 16px;
+      padding: 7px 18px;
       font-size: 13px; font-weight: 600;
-      cursor: pointer;
+      font-family: inherit;
       transition: all 0.15s;
-      -webkit-app-region: no-drag;
-      flex-shrink: 0;
       box-shadow: 0 4px 12px rgba(43, 140, 238, 0.3);
       white-space: nowrap;
     }
-    .mini-done-btn:hover { background: #2577d4; }
+    .mini-done-btn:hover { background: #2577d4 !important; }
     .mini-done-btn:active { transform: scale(0.95); }
     .mini-done-btn.visible { display: flex; }
-    .mini-done-btn svg { width: 14px; height: 14px; }
 
     /* Expand button */
     .mini-expand {
-      width: 32px; height: 32px;
+      width: 28px; height: 28px;
       border-radius: 50%;
-      background: transparent; border: none;
-      color: rgba(255, 255, 255, 0.5);
+      background: transparent;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.15s;
-      -webkit-app-region: no-drag;
-      flex-shrink: 0;
+      transition: all 0.15s;
       margin-left: auto;
     }
-    .mini-expand:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-    .mini-expand svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; }
-
-    /* Hide done + expand when not needed */
-    .mini-done-btn:not(.visible) ~ .mini-expand { margin-left: auto; }
+    .mini-expand:hover { background: rgba(255, 255, 255, 0.1); }
 
     /* Subtle glow under pill */
     #strip.mini-mode::after {
       content: '';
       position: absolute;
       inset: -4px;
-      background: radial-gradient(ellipse at center, rgba(43, 140, 238, 0.12) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgba(43, 140, 238, 0.1) 0%, transparent 70%);
       border-radius: 9999px;
       z-index: -1;
       pointer-events: none;
@@ -430,22 +408,36 @@ export function renderControlStrip() {
 
       <!-- ── Mini / Pill Mode Controls ────── -->
       <div class="mini-controls">
-        <button class="mini-mic-btn idle" id="mini-btn-dictate" title="Dictate">${icons.mic}</button>
+        <button class="mini-mic-btn" id="mini-btn-dictate" title="Dictate">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg>
+        </button>
 
         <div class="mini-waveform" id="mini-waveform">
-          ${Array(9).fill(0).map(() => `<div class="bar"></div>`).join('')}
+          <div class="bar" style="height:12px"></div>
+          <div class="bar" style="height:20px"></div>
+          <div class="bar" style="height:28px"></div>
+          <div class="bar" style="height:17px"></div>
+          <div class="bar" style="height:25px"></div>
+          <div class="bar" style="height:11px"></div>
+          <div class="bar" style="height:22px"></div>
+          <div class="bar" style="height:14px"></div>
+          <div class="bar" style="height:19px"></div>
         </div>
 
         <div class="mini-sep"></div>
 
-        <button class="mini-action" id="mini-btn-read" title="Read Selection">${icons.speaker}</button>
-
-        <button class="mini-done-btn" id="mini-done-btn">
-          ${icons.stop}
-          <span>Done</span>
+        <button class="mini-action" id="mini-btn-read" title="Read Selection">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
         </button>
 
-        <button class="mini-expand" id="mini-btn-expand" title="Expand">${icons.expand}</button>
+        <button class="mini-done-btn" id="mini-done-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" fill="#FFFFFF"/></svg>
+          <span style="color:#fff; font-size:13px; font-weight:600;">Done</span>
+        </button>
+
+        <button class="mini-expand" id="mini-btn-expand" title="Expand">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
       </div>
     </div>
   `
@@ -463,13 +455,14 @@ export function renderControlStrip() {
   const miniReadBtn = document.getElementById('mini-btn-read')
 
   // ── Waveform animation ──
+  const miniDefaultH = [12, 20, 28, 17, 25, 11, 22, 14, 19]
   let waveInterval = null
   function startWave() {
     waveform.classList.add('active')
     miniWaveform.classList.add('active')
     waveInterval = setInterval(() => {
       waveBars.forEach(b => { b.style.height = (2 + Math.random() * 10) + 'px' })
-      miniBars.forEach(b => { b.style.height = (4 + Math.random() * 16) + 'px' })
+      miniBars.forEach(b => { b.style.height = (6 + Math.random() * 26) + 'px' })
     }, 130)
   }
   function stopWave() {
@@ -478,7 +471,7 @@ export function renderControlStrip() {
     miniWaveform.classList.remove('active')
     const defaultH = [3,5,2,4,6,3,5,2,4,1]
     waveBars.forEach((b, i) => { b.style.height = (defaultH[i] || 3) + 'px' })
-    miniBars.forEach(b => { b.style.height = '4px' })
+    miniBars.forEach((b, i) => { b.style.height = (miniDefaultH[i] || 12) + 'px' })
   }
 
   // ── Mode Toggle ──
@@ -541,9 +534,7 @@ export function renderControlStrip() {
 
     // Reset pill mode
     miniMicBtn.classList.remove('recording')
-    miniMicBtn.classList.add('idle')
-    miniMicBtn.innerHTML = icons.mic
-    miniReadBtn.classList.remove('reading-active')
+    miniMicBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg>`
     miniDoneBtn.classList.remove('visible')
 
     // 1. DICTATING
@@ -551,8 +542,7 @@ export function renderControlStrip() {
       appStatus.textContent = 'LISTENING...'
       btnDictate.classList.add('active')
       dictateLabel.textContent = 'Stop Dictating'
-      // Pill: red pulsing mic + Done button
-      miniMicBtn.classList.remove('idle')
+      // Pill: pulsing mic + Done button
       miniMicBtn.classList.add('recording')
       miniDoneBtn.classList.add('visible')
       startWave()
