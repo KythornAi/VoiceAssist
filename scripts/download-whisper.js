@@ -122,8 +122,8 @@ async function compileMacBinary() {
     fs.mkdirSync(tmpDir, { recursive: true })
     execSync(`git clone --depth 1 --branch ${WHISPER_VERSION} ${WHISPER_REPO} "${srcDir}"`, { stdio: 'inherit' })
 
-    console.log('Building whisper-cli (this may take a minute)...')
-    execSync(`cmake -B build -DWHISPER_METAL=ON`, { cwd: srcDir, stdio: 'inherit' })
+    console.log('Building whisper-cli with static linking (this may take a minute)...')
+    execSync(`cmake -B build -DWHISPER_METAL=ON -DBUILD_SHARED_LIBS=OFF`, { cwd: srcDir, stdio: 'inherit' })
     execSync(`cmake --build build --config Release -j${Math.max(1, os.cpus().length - 1)}`, { cwd: srcDir, stdio: 'inherit' })
 
     // Copy the binary
@@ -133,6 +133,16 @@ async function compileMacBinary() {
     }
     fs.copyFileSync(builtBinary, whisperCliPath)
     fs.chmodSync(whisperCliPath, 0o755)
+
+    // Copy Metal shader support file if present
+    const metalLib = path.join(srcDir, 'build', 'bin', 'ggml-metal.metal')
+    if (fs.existsSync(metalLib)) {
+        fs.copyFileSync(metalLib, path.join(BIN_DIR, 'ggml-metal.metal'))
+    }
+    const defaultMetal = path.join(srcDir, 'build', 'bin', 'default.metallib')
+    if (fs.existsSync(defaultMetal)) {
+        fs.copyFileSync(defaultMetal, path.join(BIN_DIR, 'default.metallib'))
+    }
 
     // Cleanup
     execSync(`rm -rf "${srcDir}"`)
