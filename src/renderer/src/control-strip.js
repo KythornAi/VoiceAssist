@@ -4,7 +4,7 @@ export function renderControlStrip() {
     html, body {
       background: transparent !important;
       overflow: hidden;
-      margin: 0; padding: 0;
+      margin: 0; padding: 2px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       color: var(--text);
@@ -14,14 +14,13 @@ export function renderControlStrip() {
     #strip {
       display: flex; flex-direction: column;
       width: 100%; height: 100%;
-      background: rgba(16, 25, 34, 0.8);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: #111920;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
       overflow: hidden;
       -webkit-app-region: drag;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     }
     #strip button, #strip a { -webkit-app-region: no-drag; }
 
@@ -188,8 +187,9 @@ export function renderControlStrip() {
       width: 100%;
       height: 100%;
       padding: 0 2px;
-      gap: 6px;
+      gap: 8px;
       -webkit-app-region: drag;
+      justify-content: center;
     }
     #strip.mini-mode .mini-controls { display: flex; }
 
@@ -259,7 +259,7 @@ export function renderControlStrip() {
       background: #2b8cee !important;
       color: #fff;
       border-radius: 9999px;
-      padding: 7px 18px;
+      padding: 7px 20px 7px 14px;
       font-size: 13px; font-weight: 600;
       font-family: inherit;
       transition: all 0.15s;
@@ -277,7 +277,6 @@ export function renderControlStrip() {
       background: transparent;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
-      margin-left: auto;
     }
     .mini-expand:hover { background: rgba(255, 255, 255, 0.1); }
 

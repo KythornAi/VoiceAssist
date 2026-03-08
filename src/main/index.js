@@ -245,8 +245,7 @@ function showControlStrip() {
     if (controlStripWin && !controlStripWin.isDestroyed()) { controlStripWin.show(); return }
     controlStripWin = new BrowserWindow({
         width: 310, height: 420, frame: false,
-        transparent: false,
-        backgroundColor: '#111920',
+        transparent: true,
         roundedCorners: true,
         alwaysOnTop: 'screen-saver', // Higher level to stay visible over full-screen apps
         skipTaskbar: true, // TRUE: keep it out of the Cmd+Tab and Dock as much as possible
@@ -255,7 +254,7 @@ function showControlStrip() {
         type: 'panel', // OS-specific: floating panel that doesn't steal focus as easily
         focusable: false, // CRITICAL: prevent focus-stealing on click
         acceptFirstMouse: true, // receive click even when not focused
-        hasShadow: true,
+        hasShadow: false,
         show: true,
         webPreferences: { preload: getPreload(), contextIsolation: true, nodeIntegration: false }
     })
@@ -534,7 +533,7 @@ function setupIPC() {
     ipcMain.handle('set-control-strip-mode', (_, mode) => {
         if (!controlStripWin || controlStripWin.isDestroyed()) return
         if (mode === 'mini') {
-            controlStripWin.setSize(340, 48)
+            controlStripWin.setSize(300, 52)
         } else {
             controlStripWin.setSize(310, 440)
         }
