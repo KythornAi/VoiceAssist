@@ -138,32 +138,82 @@ function syncUI() { broadcast('status-change', { ...state }) }
 // TEXT INJECTION (cross-platform clipboard + paste)
 // ================================================================
 
-// Track the user's app by bundle ID (captured when dictation/reading starts)
+// Continuously track the last non-Electron frontmost app.
+// This solves the pill mode problem: clicking the pill makes Electron frontmost,
+// so we can't capture the target app at click time. Instead we always know
+// which app was last in front thanks to polling.
 let targetBundleId = null
+let lastNonElectronBundleId = null
+let appTrackingInterval = null
+
+function startAppTracking() {
+    if (process.platform !== 'darwin' && process.platform !== 'win32') return
+    // Poll every 1s for the frontmost app
+    appTrackingInterval = setInterval(() => {
+        try {
+            if (process.platform === 'darwin') {
+                const bid = execSync(
+                    `osascript -e 'tell application "System Events" to get bundle identifier of first application process whose frontmost is true'`,
+                    { encoding: 'utf8', timeout: 2000 }
+                ).trim()
+                if (bid && !bid.toLowerCase().includes('electron')) {
+                    lastNonElectronBundleId = bid
+                }
+            } else if (process.platform === 'win32') {
+                // Get the process name of the foreground window
+                const name = execSync(
+                    `powershell -NoProfile -Command "$sig='[DllImport(\\\"user32.dll\\\")]public static extern IntPtr GetForegroundWindow();[DllImport(\\\"user32.dll\\\")]public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);';if(-not('FGW' -as [type])){Add-Type -MemberDefinition $sig -Name FGW -Namespace VA};$h=[VA.FGW]::GetForegroundWindow();$p=0;[VA.FGW]::GetWindowThreadProcessId($h,[ref]$p)|Out-Null;(Get-Process -Id $p).ProcessName"`,
+                    { encoding: 'utf8', timeout: 2000 }
+                ).trim()
+                if (name && !name.toLowerCase().includes('electron')) {
+                    lastNonElectronBundleId = name
+                }
+            }
+        } catch { /* ignore failures */ }
+    }, 1000)
+}
+
+function stopAppTracking() {
+    if (appTrackingInterval) { clearInterval(appTrackingInterval); appTrackingInterval = null }
+}
 
 function captureTargetApp() {
+    // Use the continuously-tracked value (solves pill mode focus-stealing)
+    if (lastNonElectronBundleId) {
+        targetBundleId = lastNonElectronBundleId
+        console.log('[VA] Target app (tracked):', targetBundleId)
+        return
+    }
+    // Fallback: try live capture (works for hotkey-triggered actions on Mac)
     if (process.platform === 'darwin') {
         try {
             const bid = execSync(
                 `osascript -e 'tell application "System Events" to get bundle identifier of first application process whose frontmost is true'`,
-                { encoding: 'utf8' }
+                { encoding: 'utf8', timeout: 2000 }
             ).trim()
-            if (bid && !bid.includes('electron') && !bid.includes('Electron')) {
+            if (bid && !bid.toLowerCase().includes('electron')) {
                 targetBundleId = bid
-                console.log('[VA] Target app:', bid)
+                console.log('[VA] Target app (live):', bid)
             }
         } catch { }
     }
 }
 
 async function activateTargetApp() {
-    if (process.platform === 'darwin' && targetBundleId) {
-        try {
+    if (!targetBundleId) return
+    try {
+        if (process.platform === 'darwin') {
             execSync(`osascript -e 'tell application id "${targetBundleId}" to activate'`)
-            await sleep(150)
-        } catch (err) {
-            console.warn('[VA] Could not activate target app:', err.message)
+        } else if (process.platform === 'win32') {
+            // On Windows, targetBundleId is the process name -- bring its window to front
+            execSync(
+                `powershell -NoProfile -Command "$p=Get-Process '${targetBundleId}' -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0} | Select-Object -First 1; if($p){if(-not('SFW' -as [type])){Add-Type -MemberDefinition '[DllImport(\\\"user32.dll\\\")]public static extern bool SetForegroundWindow(IntPtr h);' -Name SFW -Namespace VA};[VA.SFW]::SetForegroundWindow($p.MainWindowHandle)}"`,
+                { timeout: 2000 }
+            )
         }
+        await sleep(150)
+    } catch (err) {
+        console.warn('[VA] Could not activate target app:', err.message)
     }
 }
 
@@ -402,6 +452,9 @@ app.whenReady().then(() => {
     // Start audio window so model loads in background
     ensureAudioWindow()
 
+    // Track frontmost non-Electron app so pill mode knows where to paste
+    startAppTracking()
+
     registerHotkeys()
     setupIPC()
 
@@ -422,7 +475,7 @@ app.on('activate', () => {
     }
 })
 
-app.on('will-quit', () => globalShortcut.unregisterAll())
+app.on('will-quit', () => { stopAppTracking(); globalShortcut.unregisterAll() })
 app.on('window-all-closed', e => e.preventDefault())
 
 // ================================================================
