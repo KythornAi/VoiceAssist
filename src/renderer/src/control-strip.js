@@ -4,7 +4,7 @@ export function renderControlStrip() {
     html, body {
       background: transparent !important;
       overflow: hidden;
-      margin: 0; padding: 2px;
+      margin: 0; padding: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       color: var(--text);

@@ -243,9 +243,10 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 // ================================================================
 function showControlStrip() {
     if (controlStripWin && !controlStripWin.isDestroyed()) { controlStripWin.show(); return }
-    const winOpts = {
-        width: 310, height: 420, frame: false,
+    controlStripWin = new BrowserWindow({
+        width: 310, height: 396, frame: false,
         transparent: true,
+        backgroundColor: '#00000000', // Fully transparent -- no compositor tint
         roundedCorners: true,
         alwaysOnTop: 'screen-saver', // Higher level to stay visible over full-screen apps
         skipTaskbar: true, // TRUE: keep it out of the Cmd+Tab and Dock as much as possible
@@ -257,13 +258,7 @@ function showControlStrip() {
         hasShadow: false,
         show: true,
         webPreferences: { preload: getPreload(), contextIsolation: true, nodeIntegration: false }
-    }
-    // macOS: use vibrancy to eliminate the faint opaque rectangle behind the pill
-    if (process.platform === 'darwin') {
-        winOpts.vibrancy = 'under-window'
-        winOpts.visualEffectState = 'active'
-    }
-    controlStripWin = new BrowserWindow(winOpts)
+    })
     const { width } = screen.getPrimaryDisplay().workAreaSize
     controlStripWin.setPosition(width - 360, 20)
     load(controlStripWin, 'control-strip')
@@ -539,9 +534,9 @@ function setupIPC() {
     ipcMain.handle('set-control-strip-mode', (_, mode) => {
         if (!controlStripWin || controlStripWin.isDestroyed()) return
         if (mode === 'mini') {
-            controlStripWin.setSize(300, 52)
+            controlStripWin.setSize(300, 48)
         } else {
-            controlStripWin.setSize(310, 440)
+            controlStripWin.setSize(310, 396)
         }
         return true
     })
