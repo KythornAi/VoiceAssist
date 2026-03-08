@@ -198,8 +198,10 @@ export function renderControlStrip() {
       -webkit-app-region: no-drag;
       border: none;
       cursor: pointer;
-      padding: 0;
       flex-shrink: 0;
+    }
+    .mini-controls button:not(.mini-done-btn) {
+      padding: 0;
     }
 
     /* Red mic button */
