@@ -165,14 +165,14 @@ export function renderControlStrip() {
     #strip.mini-mode {
       flex-direction: row;
       align-items: center;
-      padding: 0 8px;
+      padding: 0 10px;
       border-radius: 9999px;
       height: 48px;
       width: 100%;
-      background: rgba(16, 25, 34, 0.65);
+      background: rgba(16, 25, 34, 0.85);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
     }
     .mini-mode .strip-header,
@@ -209,8 +209,9 @@ export function renderControlStrip() {
     .mini-mic-btn:hover { transform: scale(1.08); }
     .mini-mic-btn:active { transform: scale(0.95); }
     .mini-mic-btn svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2.5; }
-    .mini-mic-btn.idle { background: rgba(255, 255, 255, 0.1); }
+    .mini-mic-btn.idle { background: rgba(239, 68, 68, 0.7); }
     .mini-mic-btn.idle svg { stroke: #fff; }
+    .mini-mic-btn.idle:hover { background: #EF4444; }
 
     /* Pulse animation for recording */
     .mini-mic-btn.recording {
@@ -229,37 +230,38 @@ export function renderControlStrip() {
       flex-shrink: 0;
     }
     .mini-waveform .bar {
-      width: 3px; height: 4px;
+      width: 3px; height: 6px;
       border-radius: 2px;
       background: linear-gradient(to top, #2b8cee, #60a5fa);
       transition: height 0.1s;
     }
-    .mini-waveform:not(.active) { opacity: 0.3; }
-    .mini-waveform:not(.active) .bar { height: 4px !important; }
+    .mini-waveform:not(.active) { opacity: 0.5; }
+    .mini-waveform:not(.active) .bar { height: 6px !important; }
 
     /* Vertical separator in pill */
     .mini-sep {
-      width: 1px; height: 20px;
-      background: rgba(255, 255, 255, 0.1);
+      width: 1px; height: 22px;
+      background: rgba(255, 255, 255, 0.15);
       flex-shrink: 0;
-      margin: 0 4px;
+      margin: 0 6px;
     }
 
     /* Action buttons in pill */
     .mini-action {
       width: 36px; height: 36px;
       border-radius: 50%;
-      background: transparent; border: none;
-      color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.08); border: none;
+      color: #fff;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; transition: all 0.15s;
       -webkit-app-region: no-drag;
       flex-shrink: 0;
     }
-    .mini-action:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .mini-action:hover { background: rgba(255, 255, 255, 0.15); color: #fff; transform: scale(1.05); }
     .mini-action:active { transform: scale(0.9); }
-    .mini-action svg { width: 18px; height: 18px; }
-    .mini-action.reading-active { color: #2b8cee; background: rgba(43, 140, 238, 0.15); }
+    .mini-action svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2; }
+    .mini-action.reading-active { color: #2b8cee; background: rgba(43, 140, 238, 0.2); }
+    .mini-action.reading-active svg { stroke: #2b8cee; }
 
     /* Done button in pill */
     .mini-done-btn {
@@ -288,15 +290,15 @@ export function renderControlStrip() {
       width: 32px; height: 32px;
       border-radius: 50%;
       background: transparent; border: none;
-      color: rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.5);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; transition: all 0.15s;
       -webkit-app-region: no-drag;
       flex-shrink: 0;
       margin-left: auto;
     }
-    .mini-expand:hover { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.7); }
-    .mini-expand svg { width: 14px; height: 14px; }
+    .mini-expand:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .mini-expand svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; }
 
     /* Hide done + expand when not needed */
     .mini-done-btn:not(.visible) ~ .mini-expand { margin-left: auto; }
