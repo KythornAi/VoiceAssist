@@ -1,4 +1,4 @@
-import { spawn } from 'child_process'
+import { spawn, execSync } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 import { app } from 'electron'
@@ -9,14 +9,47 @@ import { app } from 'electron'
  * Returns a Buffer containing the WAV data.
  */
 
+let _cachedPiperPath = null
+
 function getBinaryPath() {
+    if (_cachedPiperPath) return _cachedPiperPath
+
     const platform = process.platform
     const binName = platform === 'win32' ? 'piper.exe' : 'piper'
 
-    if (app.isPackaged) {
-        return path.join(process.resourcesPath, 'bin', binName)
+    // In dev mode on macOS, prefer the Python piper-tts (native binary has dylib issues)
+    if (!app.isPackaged && platform === 'darwin') {
+        try {
+            const result = execSync('which piper 2>/dev/null', { encoding: 'utf8' }).trim()
+            if (result && fs.existsSync(result)) {
+                _cachedPiperPath = result
+                return _cachedPiperPath
+            }
+        } catch { /* fall through to native binary */ }
+
+        // Check common Python bin locations
+        const home = process.env.HOME || ''
+        const pythonPaths = [
+            path.join(home, 'Library/Python/3.9/bin/piper'),
+            path.join(home, 'Library/Python/3.11/bin/piper'),
+            path.join(home, 'Library/Python/3.12/bin/piper'),
+            '/opt/homebrew/bin/piper',
+            '/usr/local/bin/piper',
+        ]
+        for (const p of pythonPaths) {
+            if (fs.existsSync(p)) {
+                _cachedPiperPath = p
+                return _cachedPiperPath
+            }
+        }
     }
-    return path.join(app.getAppPath(), 'resources', 'bin', binName)
+
+    if (app.isPackaged) {
+        _cachedPiperPath = path.join(process.resourcesPath, 'bin', binName)
+    } else {
+        _cachedPiperPath = path.join(app.getAppPath(), 'resources', 'bin', binName)
+    }
+    return _cachedPiperPath
 }
 
 function getVoicesDir() {

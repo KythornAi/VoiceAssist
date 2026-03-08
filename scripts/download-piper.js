@@ -49,7 +49,7 @@ const VOICES = [
     voiceEntry('en_GB', 'northern_english_male', 'medium'),
     // Female voices
     voiceEntry('en_US', 'amy', 'medium'),
-    voiceEntry('en_US', 'kathleen', 'medium'),
+    voiceEntry('en_US', 'kathleen', 'low'),
     voiceEntry('en_US', 'kristin', 'medium'),
     voiceEntry('en_GB', 'alba', 'medium'),
     voiceEntry('en_GB', 'cori', 'medium'),
@@ -66,10 +66,11 @@ function download(url, dest) {
         const file = fs.createWriteStream(dest)
 
         function follow(u) {
-            const get = u.startsWith('https') ? https.get : https.get
-            get(u, (res) => {
+            const parsed = new URL(u)
+            https.get(parsed, (res) => {
                 if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                    follow(res.headers.location)
+                    const next = new URL(res.headers.location, u).href
+                    follow(next)
                     return
                 }
                 if (res.statusCode !== 200) {

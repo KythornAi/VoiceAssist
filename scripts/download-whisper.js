@@ -36,12 +36,14 @@ function download(url, dest) {
         console.log(`        To: ${dest}`)
 
         const file = fs.createWriteStream(dest)
-        const get = url.startsWith('https') ? https.get : http.get
 
         function follow(u) {
-            get(u, (res) => {
+            const parsed = new URL(u)
+            const get = parsed.protocol === 'https:' ? https.get : http.get
+            get(parsed, (res) => {
                 if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                    follow(res.headers.location)
+                    const next = new URL(res.headers.location, u).href
+                    follow(next)
                     return
                 }
                 if (res.statusCode !== 200) {
