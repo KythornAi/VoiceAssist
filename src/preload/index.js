@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('api', {
     },
     sendAudioStatus: (status) => ipcRenderer.invoke('audio-status', status),
     sendTranscript: (text) => ipcRenderer.invoke('audio-transcript', text),
+    transcribeAudio: (pcmArray) => ipcRenderer.invoke('transcribe-audio', pcmArray),
+    checkWhisper: () => ipcRenderer.invoke('check-whisper'),
 
     // ── Events pushed from main → all renderers ────────────────────
     onStatusChange: (cb) => {

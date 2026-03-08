@@ -1,13 +1,10 @@
-import { pipeline, env } from '@xenova/transformers'
-
 /**
- * AUDIO CAPTURE + LOCAL WHISPER STT
- * This renderer window is never shown — it runs silently in the background.
- * It captures microphone audio, runs Whisper locally, and sends the transcript to main.
+ * AUDIO CAPTURE
+ * This renderer window is never shown -- it runs silently in the background.
+ * Captures microphone audio and sends raw PCM to main process for transcription
+ * via whisper.cpp sidecar.
  */
 export async function renderAudioCapture() {
-    let transcriber = null
-    let modelLoading = false
     let isRecording = false
     let audioCtx, source, processor, stream
     let audioChunks = []
@@ -20,18 +17,16 @@ export async function renderAudioCapture() {
         error: new Audio('/sounds/error.wav')
     }
 
-    console.log('[audio] Audio capture setup complete. Preloading models...')
+    console.log('[audio] Audio capture ready.')
 
     const playSound = async (type) => {
         try {
-            console.log(`[audio] Triggering sound: ${type}`)
             const settings = await window.api.getSettings()
             if (settings.soundEffects) {
                 const sound = SOUNDS[type]
                 if (sound) {
                     sound.currentTime = 0
                     await sound.play()
-                    console.log(`[audio] Sound played: ${type}`)
                 }
             }
         } catch (err) {
@@ -42,57 +37,26 @@ export async function renderAudioCapture() {
     // ── Receive commands from main process ─────────────────────────
     window.api.onAudioCommand(async (cmd) => {
         if (cmd === 'start') await startRecording()
-        else if (cmd === 'stop') await stopAndTranscribe()
+        else if (cmd === 'stop') await stopAndSend()
     })
 
-    // ── Preload the model in the background silently ────────────────
-    loadModel()
-
-    // ── Model loader ────────────────────────────────────────────────
-    async function loadModel() {
-        if (transcriber || modelLoading) return
-        modelLoading = true
-
-        try {
-            env.allowLocalModels = false  // fetch from HF Hub and cache locally
-            env.backends.onnx.wasm.numThreads = 1
-            env.backends.onnx.wasm.proxy = false // WASM proxy can be flaky in Electron
-
-            window.api.sendAudioStatus({ type: 'model-loading', progress: 0 })
-            console.log('[audio] Loading Whisper model (base.en)...')
-
-            const model = await pipeline(
-                'automatic-speech-recognition',
-                'Xenova/whisper-base.en',
-                {
-                    progress_callback: (info) => {
-                        if (info.status === 'progress') {
-                            window.api.sendAudioStatus({
-                                type: 'model-loading',
-                                progress: Math.round(info.progress),
-                                file: info.file
-                            })
-                        }
-                    }
-                }
-            )
-            transcriber = model // Assign only after successful load
-            console.log('[audio] Whisper model ready ✓')
-            window.api.sendAudioStatus({ type: 'model-ready' })
-        } catch (err) {
-            console.error('[audio] Model load failed:', err)
-            playSound('error')
-            window.api.sendAudioStatus({ type: 'error', message: 'Could not load speech model: ' + err.message })
-        }
-        modelLoading = false
+    // Check whisper.cpp readiness and report to main
+    const whisperStatus = await window.api.checkWhisper()
+    if (whisperStatus.ready) {
+        window.api.sendAudioStatus({ type: 'model-ready' })
+    } else {
+        console.warn('[audio] whisper.cpp not ready:', whisperStatus)
+        window.api.sendAudioStatus({
+            type: 'error',
+            message: whisperStatus.missingBinary
+                ? 'whisper-cli binary not found. Run "npm run download:whisper" to set up.'
+                : 'Whisper model not found. Run "npm run download:whisper" to download it.'
+        })
     }
 
     // ── Start microphone recording ──────────────────────────────────
     async function startRecording() {
         if (isRecording) return
-
-        // Kick off model load if not started yet
-        if (!transcriber && !modelLoading) loadModel()
 
         console.log('[audio] Requesting microphone access...')
         try {
@@ -105,7 +69,7 @@ export async function renderAudioCapture() {
                     autoGainControl: true,
                 }
             })
-            console.log('[audio] Microphone access granted ✓')
+            console.log('[audio] Microphone access granted')
         } catch (err) {
             console.error('[audio] Microphone access denied:', err)
             playSound('error')
@@ -113,7 +77,6 @@ export async function renderAudioCapture() {
             return
         }
 
-        console.log('[audio] Playing start sound...')
         playSound('start')
 
         audioCtx = new AudioContext({ sampleRate: 16000 })
@@ -133,8 +96,8 @@ export async function renderAudioCapture() {
         window.api.sendAudioStatus({ type: 'listening' })
     }
 
-    // ── Stop recording and transcribe ───────────────────────────────
-    async function stopAndTranscribe() {
+    // ── Stop recording and send PCM to main for transcription ───────
+    async function stopAndSend() {
         if (!isRecording) return
         isRecording = false
 
@@ -146,7 +109,7 @@ export async function renderAudioCapture() {
 
         // Merge PCM chunks into one Float32Array
         const totalLen = audioChunks.reduce((s, c) => s + c.length, 0)
-        if (totalLen < 8000) { // less than 0.5 seconds — skip
+        if (totalLen < 8000) { // less than 0.5 seconds -- skip
             window.api.sendAudioStatus({ type: 'idle' })
             return
         }
@@ -158,88 +121,17 @@ export async function renderAudioCapture() {
 
         window.api.sendAudioStatus({ type: 'processing' })
 
-        // Wait for model if it's still downloading
-        if (!transcriber) {
-            console.log('[audio] Waiting for Whisper model to finish loading...')
-            window.api.sendAudioStatus({ type: 'waiting-for-model' })
-            await new Promise(resolve => {
-                let attempts = 0
-                const check = setInterval(() => {
-                    attempts++
-                    if (transcriber) { clearInterval(check); resolve() }
-                    if (attempts > 100) { // ~30 seconds max
-                        clearInterval(check)
-                        console.error('[audio] Model loading timed out during transcription wait')
-                        resolve()
-                    }
-                }, 300)
-            })
-        }
-
-        // Run Whisper
+        // Send raw PCM to main process -- whisper.cpp runs there
         try {
-            if (!transcriber || typeof transcriber !== 'function') {
-                throw new Error('Speech model is not ready yet. Please try again in a few seconds.')
-            }
-
-            const settings = await window.api.getSettings()
-            const lang = (settings.language || 'en').split('-')[0] // 'en-US' → 'en'
-
-            const result = await transcriber(audio, {
-                language: lang,
-                task: 'transcribe',
-                // Whisper handles auto-punctuation natively — no config needed
-            })
-
-            let text = (result?.text || '').trim()
-
-            // Repetition Filter (Whisper Hallucination Guard)
-            // Catch cases like "4, 4, 4, 4, 4, 4..." or "word word word word..."
-            if (text.length > 20) {
-                const words = text.split(/\s+/)
-                if (words.length > 8) {
-                    const lastWord = words[words.length - 1].toLowerCase().replace(/[.,!?;:]+$/, '')
-                    let repeats = 0
-                    for (let i = words.length - 1; i >= 0; i--) {
-                        const current = words[i].toLowerCase().replace(/[.,!?;:]+$/, '')
-                        if (current === lastWord) repeats++
-                        else break
-                    }
-                    if (repeats > 4) {
-                        // Found a loop. Find the first occurrence of this word in the sequence.
-                        // We search backwards to find where the sequence started.
-                        const sequenceStartIdx = words.length - repeats
-                        const keptWords = words.slice(0, sequenceStartIdx + 1)
-                        text = keptWords.join(' ') + '...'
-                    }
-                }
-            }
-
-            if (settings.removeFillerWords && text) {
-                // Remove filler words with boundary checks.
-                const fillers = /\b(um|uh|ah|er|hm|hmm|like|you know|sort of|kind of)\b([,\.]*\s*)/gi
-                text = text.replace(fillers, '')
-                text = text.replace(/\s+/g, ' ')
-                text = text.replace(/ ,/g, ',')
-                text = text.replace(/^[,.\s]+/, '')
-                text = text.replace(/([.?!])\s*[,.]+/g, '$1')
-                if (text.length > 0) {
-                    text = text.charAt(0).toUpperCase() + text.slice(1)
-                }
-            }
-
+            const text = await window.api.transcribeAudio(Array.from(audio))
             if (text) {
                 playSound('success')
-                window.api.sendTranscript(text)
             }
-
         } catch (err) {
             playSound('error')
             console.error('[audio] Transcription error:', err)
             window.api.sendAudioStatus({ type: 'error', message: 'Transcription failed: ' + err.message })
         }
-
-        window.api.sendAudioStatus({ type: 'idle' })
     }
 
     // ── Reading Aloud & Translation ────────────────────────────────

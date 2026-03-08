@@ -5,9 +5,10 @@
     "main": "out/main/index.js",
     "scripts": {
         "dev": "electron-vite dev",
-        "build": "electron-vite build && cp node_modules/@xenova/transformers/dist/*.wasm out/renderer/",
+        "build": "electron-vite build",
         "package:mac": "npm run build && electron-builder --mac",
-        "package:win": "npm run build && electron-builder --win"
+        "package:win": "npm run build && electron-builder --win",
+        "download:whisper": "node scripts/download-whisper.js"
     },
     "build": {
         "appId": "com.voiceassist.app",
@@ -15,6 +16,18 @@
         "directories": {
             "output": "dist"
         },
+        "extraFiles": [
+            {
+                "from": "resources/bin/",
+                "to": "bin",
+                "filter": ["**/*"]
+            },
+            {
+                "from": "resources/models/",
+                "to": "models",
+                "filter": ["**/*"]
+            }
+        ],
         "mac": {
             "category": "public.app-category.productivity",
             "target": [
@@ -27,18 +40,11 @@
             "entitlements": "build/entitlements.mac.plist",
             "entitlementsInherit": "build/entitlements.mac.plist",
             "hardenedRuntime": true,
-            "gatekeeperAssess": false,
-            "asarUnpack": [
-                "**/*.wasm",
-                "**/node_modules/@xenova/transformers/**/*"
-            ]
+            "gatekeeperAssess": false
         },
         "win": {
             "target": [
                 "nsis"
-            ],
-            "asarUnpack": [
-                "**/*.wasm"
             ]
         }
     },
@@ -46,10 +52,7 @@
         "electron": "^33.2.0",
         "electron-builder": "^25.1.8",
         "electron-vite": "^2.3.0",
-        "terser": "^5.46.0",
-        "vite-plugin-static-copy": "^3.2.0"
+        "terser": "^5.46.0"
     },
-    "dependencies": {
-        "@xenova/transformers": "^2.17.2"
-    }
+    "dependencies": {}
 }

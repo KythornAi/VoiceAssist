@@ -10,6 +10,7 @@ import fs from 'fs'
 import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { transcribe, checkWhisperReady } from './whisper-sidecar.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -514,6 +515,54 @@ function setupIPC() {
         } finally {
             state.processing = false
             setTrayIcon('off'); syncUI()
+        }
+    })
+
+    // ── whisper.cpp sidecar ──────────────────────────────────────────
+    ipcMain.handle('check-whisper', () => checkWhisperReady())
+
+    ipcMain.handle('transcribe-audio', async (_, pcmArray) => {
+        try {
+            const float32 = new Float32Array(pcmArray)
+            const lang = (settings.get('language') || 'en').split('-')[0]
+            const text = await transcribe(float32, lang)
+
+            if (text) {
+                // Apply filler word removal
+                let cleaned = text
+                if (settings.get('removeFillerWords')) {
+                    const fillers = /\b(um|uh|ah|er|hm|hmm|like|you know|sort of|kind of)\b([,\.]*\s*)/gi
+                    cleaned = cleaned.replace(fillers, '')
+                    cleaned = cleaned.replace(/\s+/g, ' ')
+                    cleaned = cleaned.replace(/ ,/g, ',')
+                    cleaned = cleaned.replace(/^[,.\s]+/, '')
+                    cleaned = cleaned.replace(/([.?!])\s*[,.]+/g, '$1')
+                    cleaned = cleaned.trim()
+                    if (cleaned.length > 0) {
+                        cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+                    }
+                }
+
+                if (cleaned) {
+                    history.add(cleaned)
+                    broadcast('new-transcript', { text: cleaned })
+                    await injectText(cleaned)
+                }
+
+                state.processing = false
+                setTrayIcon('off'); syncUI()
+                return cleaned
+            }
+
+            state.processing = false
+            setTrayIcon('off'); syncUI()
+            return ''
+        } catch (err) {
+            console.error('[VA] Transcription error:', err)
+            state.processing = false
+            setTrayIcon('off'); syncUI()
+            broadcast('show-error', { message: err.message })
+            throw err
         }
     })
 }
