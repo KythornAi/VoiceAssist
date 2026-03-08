@@ -807,6 +807,19 @@ label {
   transition: border-color 0.2s;
 }
 
+/* Inside toggle-rows, selects should not stretch -- keep them compact on the right */
+.toggle-row .premium-select,
+.toggle-row select {
+  width: auto;
+  flex-shrink: 0;
+  max-width: 260px;
+}
+
+/* Give text labels breathing room so they don't get crushed */
+.toggle-row .text-wrap {
+  min-width: 160px;
+}
+
 .premium-input:focus,
 .premium-select:focus {
   border-color: var(--accent);

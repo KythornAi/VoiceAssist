@@ -71,9 +71,11 @@ export function renderSettings() {
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
     }
-    .toggle-row .lhs .text-wrap { flex: 1; }
+    .toggle-row .lhs .text-wrap { flex: 1; min-width: 160px; }
     .toggle-row .lhs label { margin: 0; color: var(--text); font-weight: 500; font-size: 14px; }
     .toggle-row .lhs .sub  { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+    .toggle-row select,
+    .toggle-row .premium-select { width: auto; flex-shrink: 0; max-width: 260px; }
 
     .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; }

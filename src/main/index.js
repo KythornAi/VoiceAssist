@@ -243,7 +243,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 // ================================================================
 function showControlStrip() {
     if (controlStripWin && !controlStripWin.isDestroyed()) { controlStripWin.show(); return }
-    controlStripWin = new BrowserWindow({
+    const winOpts = {
         width: 310, height: 420, frame: false,
         transparent: true,
         roundedCorners: true,
@@ -257,7 +257,13 @@ function showControlStrip() {
         hasShadow: false,
         show: true,
         webPreferences: { preload: getPreload(), contextIsolation: true, nodeIntegration: false }
-    })
+    }
+    // macOS: use vibrancy to eliminate the faint opaque rectangle behind the pill
+    if (process.platform === 'darwin') {
+        winOpts.vibrancy = 'under-window'
+        winOpts.visualEffectState = 'active'
+    }
+    controlStripWin = new BrowserWindow(winOpts)
     const { width } = screen.getPrimaryDisplay().workAreaSize
     controlStripWin.setPosition(width - 360, 20)
     load(controlStripWin, 'control-strip')
