@@ -157,7 +157,6 @@ export function synthesise(text, options = {}) {
             '--model', modelPath,
             '--output_file', '-',
             '--length_scale', String(lengthScale.toFixed(2)),
-            '--quiet',
         ]
 
         console.log('[piper] Synthesising:', text.slice(0, 80) + (text.length > 80 ? '...' : ''))
