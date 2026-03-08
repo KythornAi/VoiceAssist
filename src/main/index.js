@@ -137,16 +137,40 @@ function syncUI() { broadcast('status-change', { ...state }) }
 // ================================================================
 // TEXT INJECTION (cross-platform clipboard + paste)
 // ================================================================
+
+// Track the last non-VoiceAssist app the user was in
+let lastFocusedApp = null
+
+function captureTargetApp() {
+    if (process.platform === 'darwin') {
+        try {
+            const app = execSync(
+                `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`,
+                { encoding: 'utf8' }
+            ).trim()
+            // Only store if it's not our own app
+            if (app && app !== 'VoiceAssist' && app !== 'Electron') {
+                lastFocusedApp = app
+            }
+        } catch { }
+    }
+}
+
 async function injectText(text) {
     const prev = clipboard.readText()
     clipboard.writeText(text + ' ')
 
-    // Allow time for OS clipboard buffer and target app focus
-    await sleep(250)
+    // Allow time for OS clipboard buffer
+    await sleep(150)
 
     try {
         if (process.platform === 'darwin') {
-            // Revert to a simpler, faster command that works better with non-focusable windows
+            // Re-activate the target app and paste
+            const target = lastFocusedApp
+            if (target) {
+                execSync(`osascript -e 'tell application "${target}" to activate'`)
+                await sleep(100)
+            }
             execSync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`)
         } else if (process.platform === 'win32') {
             execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')"`)
@@ -272,6 +296,7 @@ function setTrayIcon(key) {
 function toggleDictation() { state.dictating ? stopDictation() : startDictation() }
 
 function startDictation() {
+    captureTargetApp()
     ensureAudioWindow()
     // Give audio window a moment to load before sending command
     if (audioWin.webContents.isLoading()) {
@@ -295,20 +320,20 @@ function stopDictation() {
 async function toggleReading() {
     if (state.reading) { stopReading(); return }
 
+    captureTargetApp()
+
     // Brief pause to let fingers lift from hotkey modifiers
     await sleep(150)
 
-    // Auto-copy the user's highlighted text first
+    // Re-activate the target app and copy selected text
     try {
         if (process.platform === 'darwin') {
-            execSync(`osascript -e '
-                tell application "System Events"
-                    set frontApp to name of first application process whose frontmost is true
-                    tell process frontApp
-                        set frontmost to true
-                        keystroke "c" using command down
-                    end tell
-                end tell'`)
+            const target = lastFocusedApp
+            if (target) {
+                execSync(`osascript -e 'tell application "${target}" to activate'`)
+                await sleep(100)
+            }
+            execSync(`osascript -e 'tell application "System Events" to keystroke "c" using command down'`)
         } else if (process.platform === 'win32') {
             execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^c')"`)
         }
