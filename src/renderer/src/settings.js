@@ -321,6 +321,55 @@ export function renderSettings() {
               </label>
             </div>
           </div>
+
+          <div class="section">
+            <div class="nav-label">TEXT POLISH</div>
+            <div class="toggle-row">
+              <div class="lhs">
+                <div class="icon-wrap" style="background: rgba(124,58,237,0.1); color: #7C3AED;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                </div>
+                <div class="text-wrap">
+                  <label>Spelling region</label>
+                  <div class="sub">Choose UK or US English spelling (colour vs color)</div>
+                </div>
+              </div>
+              <select id="spelling-locale" class="premium-select">
+                <option value="uk">UK English</option>
+                <option value="us">US English</option>
+              </select>
+            </div>
+            <div class="toggle-row">
+              <div class="lhs">
+                <div class="icon-wrap" style="background: rgba(16,185,129,0.1); color: #10B981;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </div>
+                <div class="text-wrap">
+                  <label>Auto-correct spelling</label>
+                  <div class="sub">Fix common misspellings in dictated text</div>
+                </div>
+              </div>
+              <label class="switch">
+                <input id="fix-spelling" type="checkbox" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="lhs">
+                <div class="icon-wrap" style="background: rgba(245,158,11,0.1); color: #F59E0B;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="text-wrap">
+                  <label>Grammar cleanup</label>
+                  <div class="sub">Auto-capitalise, fix spacing, add missing full stops</div>
+                </div>
+              </div>
+              <label class="switch">
+                <input id="fix-grammar" type="checkbox" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Voice -->
@@ -612,6 +661,11 @@ export function renderSettings() {
     document.getElementById('sound-effects').checked = s.soundEffects !== false
     document.getElementById('translate-lang').value = s.translationLanguage || 'en'
 
+    // Text polish settings
+    document.getElementById('spelling-locale').value = s.spellingLocale || 'uk'
+    document.getElementById('fix-spelling').checked = s.fixSpelling !== false
+    document.getElementById('fix-grammar').checked = s.fixGrammar !== false
+
     if (s.dictationHotkey) dictationRecorder.setValue(s.dictationHotkey)
     if (s.readHotkey) readRecorder.setValue(s.readHotkey)
   })
@@ -711,6 +765,9 @@ export function renderSettings() {
       readingSpeed: Number(document.getElementById('speed-slider').value),
       translationLanguage: document.getElementById('translate-lang').value,
       openaiApiKey: document.getElementById('openai-key')?.value?.trim() || '',
+      spellingLocale: document.getElementById('spelling-locale').value,
+      fixSpelling: document.getElementById('fix-spelling').checked,
+      fixGrammar: document.getElementById('fix-grammar').checked,
     }
     for (const [k, v] of Object.entries(pairs)) await window.api.setSetting(k, v)
     // Re-register hotkeys immediately — no restart needed

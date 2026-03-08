@@ -11,6 +11,7 @@ import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { transcribe, checkWhisperReady } from './whisper-sidecar.js'
+import { polishText } from './text-polish.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -52,6 +53,9 @@ const DEFAULTS = {
     readingSpeed: 1.0,
     showControlStrip: true,
     launchAtStartup: false,
+    spellingLocale: 'uk',
+    fixSpelling: true,
+    fixGrammar: true,
 }
 class JsonStore {
     constructor(fn) {
@@ -525,23 +529,19 @@ function setupIPC() {
         try {
             const float32 = new Float32Array(pcmArray)
             const lang = (settings.get('language') || 'en').split('-')[0]
-            const text = await transcribe(float32, lang)
+            const rawText = await transcribe(float32, lang)
 
-            if (text) {
-                // Apply filler word removal
-                let cleaned = text
-                if (settings.get('removeFillerWords')) {
-                    const fillers = /\b(um|uh|ah|er|hm|hmm|like|you know|sort of|kind of)\b([,\.]*\s*)/gi
-                    cleaned = cleaned.replace(fillers, '')
-                    cleaned = cleaned.replace(/\s+/g, ' ')
-                    cleaned = cleaned.replace(/ ,/g, ',')
-                    cleaned = cleaned.replace(/^[,.\s]+/, '')
-                    cleaned = cleaned.replace(/([.?!])\s*[,.]+/g, '$1')
-                    cleaned = cleaned.trim()
-                    if (cleaned.length > 0) {
-                        cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
-                    }
-                }
+            if (rawText) {
+                // Run the full text polish pipeline
+                const cleaned = polishText(rawText, {
+                    locale: settings.get('spellingLocale') || 'uk',
+                    fixSpelling: settings.get('fixSpelling') !== false,
+                    fixGrammar: settings.get('fixGrammar') !== false,
+                    removeFillerWords: settings.get('removeFillerWords') !== false,
+                })
+
+                console.log('[VA] Raw:', rawText)
+                console.log('[VA] Polished:', cleaned)
 
                 if (cleaned) {
                     history.add(cleaned)
