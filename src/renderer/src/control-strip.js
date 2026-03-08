@@ -13,9 +13,8 @@ export function renderControlStrip() {
     /* ── Expanded Panel ────────────────────────── */
     #strip {
       display: flex; flex-direction: column;
-      /* Inset from window edges so macOS compositor artefact is hidden behind our content */
-      position: absolute;
-      inset: 4px;
+      width: calc(100% - 16px); height: calc(100% - 16px);
+      margin: 8px;
       background: #111920;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
@@ -23,10 +22,6 @@ export function renderControlStrip() {
       -webkit-app-region: drag;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-    }
-    /* In mini mode, use smaller inset so the pill isn't clipped */
-    #strip.mini-mode {
-      inset: 2px;
     }
     #strip button, #strip a { -webkit-app-region: no-drag; }
 
@@ -173,12 +168,13 @@ export function renderControlStrip() {
       padding: 0 10px 0 14px;
       border-radius: 9999px;
       height: 56px;
-      width: 100%;
+      width: calc(100% - 16px);
+      margin: 8px;
       background: rgba(16, 25, 34, 0.9);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+      box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.6);
       position: relative;
     }
     .mini-mode .strip-header,
@@ -292,12 +288,12 @@ export function renderControlStrip() {
     }
     .mini-expand:hover { background: rgba(255, 255, 255, 0.1); }
 
-    /* Subtle glow under pill */
+    /* Subtle glow under pill -- contained within bounds */
     #strip.mini-mode::after {
       content: '';
       position: absolute;
-      inset: -4px;
-      background: radial-gradient(ellipse at center, rgba(43, 140, 238, 0.1) 0%, transparent 70%);
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(43, 140, 238, 0.08) 0%, transparent 70%);
       border-radius: 9999px;
       z-index: -1;
       pointer-events: none;

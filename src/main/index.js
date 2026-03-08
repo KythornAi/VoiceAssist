@@ -244,7 +244,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 function showControlStrip() {
     if (controlStripWin && !controlStripWin.isDestroyed()) { controlStripWin.show(); return }
     controlStripWin = new BrowserWindow({
-        width: 318, height: 404, frame: false,
+        width: 326, height: 412, frame: false,
         transparent: true,
         backgroundColor: '#00000000', // Fully transparent -- no compositor tint
         roundedCorners: true,
@@ -272,13 +272,21 @@ function showControlStrip() {
 }
 
 function showSettings() {
-    if (settingsWin && !settingsWin.isDestroyed()) { settingsWin.focus(); return }
+    if (settingsWin && !settingsWin.isDestroyed()) {
+        settingsWin.show()
+        settingsWin.focus()
+        return
+    }
     settingsWin = new BrowserWindow({
         width: 700, height: 620, minWidth: 580, minHeight: 500,
-        title: 'VoiceAssist — Settings', show: true,
+        title: 'VoiceAssist — Settings', show: false,
         webPreferences: { preload: getPreload(), contextIsolation: true, nodeIntegration: false }
     })
     load(settingsWin, 'settings')
+    settingsWin.once('ready-to-show', () => {
+        settingsWin.show()
+        settingsWin.focus()
+    })
     settingsWin.on('closed', () => { settingsWin = null })
 }
 
@@ -534,9 +542,9 @@ function setupIPC() {
     ipcMain.handle('set-control-strip-mode', (_, mode) => {
         if (!controlStripWin || controlStripWin.isDestroyed()) return
         if (mode === 'mini') {
-            controlStripWin.setSize(334, 60)
+            controlStripWin.setSize(346, 72)
         } else {
-            controlStripWin.setSize(318, 404)
+            controlStripWin.setSize(326, 412)
         }
         return true
     })
