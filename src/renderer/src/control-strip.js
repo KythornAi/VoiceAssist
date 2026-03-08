@@ -164,7 +164,7 @@ export function renderControlStrip() {
     #strip.mini-mode {
       flex-direction: row;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 10px 0 14px;
       border-radius: 9999px;
       height: 56px;
       width: 100%;
