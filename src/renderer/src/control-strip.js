@@ -216,11 +216,15 @@ export function renderControlStrip() {
     }
     .mini-mic-btn:hover { transform: scale(1.08); background: #DC2626 !important; }
     .mini-mic-btn:active { transform: scale(0.95); }
-    .mini-mic-btn.recording { animation: mic-pulse 2s infinite; }
+    .mini-mic-btn.recording {
+      background: #22C55E !important;
+      animation: mic-pulse 2s infinite;
+    }
+    .mini-mic-btn.recording:hover { background: #16A34A !important; }
     @keyframes mic-pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-      70%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
 
     /* Mini waveform -- tall bars like mockup */
