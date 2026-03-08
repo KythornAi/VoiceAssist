@@ -26,18 +26,33 @@ const PLATFORM_ARCHIVES = {
     'win32-x64': `${BASE_URL}/piper_windows_amd64.zip`,
 }
 
-// Default voices -- one UK, one US
+// Voice URL helper
+const HF = 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0'
+function voiceEntry(lang, name, quality) {
+    // lang: en_GB or en_US, name: alba, quality: medium
+    const region = lang.split('_')[1] // GB or US
+    const folder = `en/${lang}/${name}/${quality}`
+    const file = `${lang}-${name}-${quality}`
+    return {
+        name: file,
+        onnx: `${HF}/${folder}/${file}.onnx`,
+        json: `${HF}/${folder}/${file}.onnx.json`,
+    }
+}
+
+// Bundled voices -- a good mix of male and female, UK and US
 const VOICES = [
-    {
-        name: 'en_GB-alba-medium',
-        onnx: 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alba/medium/en_GB-alba-medium.onnx',
-        json: 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json',
-    },
-    {
-        name: 'en_US-amy-medium',
-        onnx: 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/medium/en_US-amy-medium.onnx',
-        json: 'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/medium/en_US-amy-medium.onnx.json',
-    },
+    // Male voices
+    voiceEntry('en_US', 'joe', 'medium'),
+    voiceEntry('en_US', 'norman', 'medium'),
+    voiceEntry('en_GB', 'alan', 'medium'),
+    voiceEntry('en_GB', 'northern_english_male', 'medium'),
+    // Female voices
+    voiceEntry('en_US', 'amy', 'medium'),
+    voiceEntry('en_US', 'kathleen', 'medium'),
+    voiceEntry('en_US', 'kristin', 'medium'),
+    voiceEntry('en_GB', 'alba', 'medium'),
+    voiceEntry('en_GB', 'cori', 'medium'),
 ]
 
 fs.mkdirSync(BIN_DIR, { recursive: true })

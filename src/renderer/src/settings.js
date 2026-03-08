@@ -640,14 +640,12 @@ export function renderSettings() {
     document.getElementById('lang-select').value = s.language || 'en-US'
     document.getElementById('auto-punct').checked = s.autoPunctuation !== false
 
-    // Load Piper voices
+    // Load Piper voices (grouped by gender)
     window.api.listPiperVoices().then(piperVoices => {
       const piperGroup = document.getElementById('piper-voices-group')
       if (piperGroup && piperVoices.length > 0) {
         piperGroup.innerHTML = piperVoices.map(v => {
-          const label = v.voice.charAt(0).toUpperCase() + v.voice.slice(1)
-          const region = v.lang.includes('GB') ? 'UK' : v.lang.includes('US') ? 'US' : v.lang
-          return `<option value="piper:${v.file}">${label} - ${region} (${v.quality})</option>`
+          return `<option value="piper:${v.file}">${v.label}</option>`
         }).join('')
       }
       // Set voice after Piper voices are loaded

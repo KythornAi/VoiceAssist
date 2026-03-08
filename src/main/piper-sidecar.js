@@ -33,20 +33,45 @@ export function listVoices() {
     const dir = getVoicesDir()
     if (!fs.existsSync(dir)) return []
 
+    // Known voice genders (bundled voices)
+    const MALE_VOICES = ['joe', 'norman', 'alan', 'northern_english_male', 'ryan', 'danny', 'john', 'sam', 'bryce', 'hfc_male', 'kusal', 'reza_ibrahim']
+    const FEMALE_VOICES = ['amy', 'alba', 'cori', 'kathleen', 'kristin', 'jenny_dioco', 'southern_english_female', 'hfc_female', 'ljspeech']
+
     return fs.readdirSync(dir)
         .filter(f => f.endsWith('.onnx'))
         .map(f => {
             const name = f.replace('.onnx', '')
-            // Parse voice name: en_GB-alba-medium -> { id, lang, name, quality }
-            const parts = name.split('-')
+            // Parse: en_GB-alba-medium or en_GB-northern_english_male-medium
+            const firstDash = name.indexOf('-')
+            const lastDash = name.lastIndexOf('-')
+            const lang = name.slice(0, firstDash)
+            const voice = name.slice(firstDash + 1, lastDash)
+            const quality = name.slice(lastDash + 1)
+
+            const gender = MALE_VOICES.includes(voice) ? 'male'
+                : FEMALE_VOICES.includes(voice) ? 'female'
+                : 'unknown'
+
+            // Pretty label: "Alan" or "Northern English Male"
+            const prettyVoice = voice.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            const region = lang.includes('GB') ? 'UK' : lang.includes('US') ? 'US' : lang
+
             return {
                 id: name,
                 file: f,
-                lang: parts[0] || '',
-                voice: parts[1] || '',
-                quality: parts[2] || 'medium',
-                label: name.replace(/_/g, ' ').replace(/-/g, ' '),
+                lang,
+                voice,
+                quality,
+                gender,
+                label: `${prettyVoice} - ${region} (${gender})`,
             }
+        })
+        // Sort: males first, then females, then by name
+        .sort((a, b) => {
+            if (a.gender === b.gender) return a.voice.localeCompare(b.voice)
+            if (a.gender === 'male') return -1
+            if (b.gender === 'male') return 1
+            return 0
         })
 }
 
