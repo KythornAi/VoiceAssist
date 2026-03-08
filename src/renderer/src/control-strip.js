@@ -24,6 +24,10 @@ export function renderControlStrip() {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     }
+    /* In mini mode, use smaller inset so the pill isn't clipped */
+    #strip.mini-mode {
+      inset: 2px;
+    }
     #strip button, #strip a { -webkit-app-region: no-drag; }
 
     /* ── Header ──────────────────────────────── */
@@ -599,12 +603,18 @@ export function renderControlStrip() {
   document.getElementById('mini-btn-read').addEventListener('pointerdown', readAction)
   document.getElementById('mini-done-btn').addEventListener('pointerdown', dictateAction) // Done = stop dictating
 
-  // Use both pointerdown and click for menu items -- focusable:false windows
-  // can swallow pointerdown on some macOS versions
+  // Guard against double-fire: pointerdown fires first, skip the click that follows
   const bind = (id, fn) => {
     const el = document.getElementById(id)
-    el.addEventListener('pointerdown', fn)
-    el.addEventListener('click', fn)
+    let lastFired = 0
+    const guarded = () => {
+      const now = Date.now()
+      if (now - lastFired < 400) return
+      lastFired = now
+      fn()
+    }
+    el.addEventListener('pointerdown', guarded)
+    el.addEventListener('click', guarded)
   }
   bind('btn-history', () => window.api.openHistory())
   bind('btn-settings', () => window.api.openSettings())

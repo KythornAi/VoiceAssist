@@ -534,7 +534,7 @@ function setupIPC() {
     ipcMain.handle('set-control-strip-mode', (_, mode) => {
         if (!controlStripWin || controlStripWin.isDestroyed()) return
         if (mode === 'mini') {
-            controlStripWin.setSize(338, 64)
+            controlStripWin.setSize(334, 60)
         } else {
             controlStripWin.setSize(318, 404)
         }
