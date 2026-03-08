@@ -81,16 +81,32 @@ export async function renderAudioCapture() {
 
         audioCtx = new AudioContext({ sampleRate: 16000 })
         source = audioCtx.createMediaStreamSource(stream)
-        processor = audioCtx.createScriptProcessor(4096, 1, 1)
-
         audioChunks = []
+
+        // Use AudioWorklet (modern) with ScriptProcessor fallback (deprecated)
+        let useWorklet = false
+        if (audioCtx.audioWorklet) {
+            try {
+                await audioCtx.audioWorklet.addModule('/audio-worklet-processor.js')
+                processor = new AudioWorkletNode(audioCtx, 'recorder-processor')
+                processor.port.onmessage = (e) => {
+                    audioChunks.push(new Float32Array(e.data))
+                }
+                useWorklet = true
+            } catch (err) {
+                console.warn('[audio] AudioWorklet failed, using ScriptProcessor:', err.message)
+            }
+        }
+
+        if (!useWorklet) {
+            processor = audioCtx.createScriptProcessor(4096, 1, 1)
+            processor.onaudioprocess = (e) => {
+                audioChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)))
+            }
+        }
+
         source.connect(processor)
         processor.connect(audioCtx.destination)
-
-        processor.onaudioprocess = (e) => {
-            const data = e.inputBuffer.getChannelData(0)
-            audioChunks.push(new Float32Array(data))
-        }
 
         isRecording = true
         window.api.sendAudioStatus({ type: 'listening' })
@@ -102,6 +118,7 @@ export async function renderAudioCapture() {
         isRecording = false
 
         // Tear down the audio pipeline
+        try { if (processor.port) processor.port.postMessage('stop') } catch { }
         try { processor.disconnect() } catch { }
         try { source.disconnect() } catch { }
         try { stream.getTracks().forEach(t => t.stop()) } catch { }
