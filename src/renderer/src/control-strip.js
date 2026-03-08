@@ -259,8 +259,8 @@ export function renderControlStrip() {
       background: #2b8cee !important;
       color: #fff;
       border-radius: 9999px;
-      padding: 8px 22px 8px 16px;
-      font-size: 13px; font-weight: 600;
+      padding: 8px 26px 8px 18px;
+      font-size: 14px; font-weight: 600;
       font-family: inherit;
       transition: all 0.15s;
       box-shadow: 0 4px 12px rgba(43, 140, 238, 0.3);

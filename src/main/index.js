@@ -247,7 +247,8 @@ function showControlStrip() {
         width: 310, height: 396, frame: false,
         transparent: true,
         backgroundColor: '#00000000', // Fully transparent -- no compositor tint
-        roundedCorners: true,
+        roundedCorners: false, // OFF: macOS compositor draws its own rounded rect border otherwise
+        titleBarStyle: 'customButtonsOnHover', // Helps macOS skip its default window chrome
         alwaysOnTop: 'screen-saver', // Higher level to stay visible over full-screen apps
         skipTaskbar: true, // TRUE: keep it out of the Cmd+Tab and Dock as much as possible
         resizable: false,
