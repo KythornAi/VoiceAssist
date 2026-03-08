@@ -128,6 +128,7 @@ export function transcribe(float32Audio, language = 'en') {
         const proc = spawn(binaryPath, args, {
             stdio: ['ignore', 'pipe', 'pipe'],
             timeout: 30000, // 30 second timeout
+            cwd: path.dirname(binaryPath), // So Windows can find whisper.dll
         })
 
         proc.stdout.on('data', (chunk) => { stdout += chunk.toString() })

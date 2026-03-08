@@ -17,33 +17,39 @@ function getBinaryPath() {
     const platform = process.platform
     const binName = platform === 'win32' ? 'piper.exe' : 'piper'
 
-    // In dev mode on macOS, prefer the Python piper-tts (native binary has dylib issues)
-    if (!app.isPackaged && platform === 'darwin') {
-        try {
-            const result = execSync('which piper 2>/dev/null', { encoding: 'utf8' }).trim()
-            if (result && fs.existsSync(result)) {
-                _cachedPiperPath = result
-                return _cachedPiperPath
-            }
-        } catch { /* fall through to native binary */ }
-
-        // Check common Python bin locations
+    // On macOS, prefer the Python piper-tts (native binary has missing dylibs).
+    // Check in both dev and packaged mode -- the native macOS release is incomplete.
+    if (platform === 'darwin') {
+        // Check common Python bin locations first
         const home = process.env.HOME || ''
         const pythonPaths = [
             path.join(home, 'Library/Python/3.9/bin/piper'),
             path.join(home, 'Library/Python/3.11/bin/piper'),
             path.join(home, 'Library/Python/3.12/bin/piper'),
+            path.join(home, 'Library/Python/3.13/bin/piper'),
             '/opt/homebrew/bin/piper',
             '/usr/local/bin/piper',
         ]
         for (const p of pythonPaths) {
             if (fs.existsSync(p)) {
+                console.log('[piper] Using Python piper at:', p)
                 _cachedPiperPath = p
                 return _cachedPiperPath
             }
         }
+
+        // Try which (may not work in packaged app due to PATH)
+        try {
+            const result = execSync('which piper 2>/dev/null', { encoding: 'utf8' }).trim()
+            if (result && fs.existsSync(result)) {
+                console.log('[piper] Using piper from PATH:', result)
+                _cachedPiperPath = result
+                return _cachedPiperPath
+            }
+        } catch { /* fall through to native binary */ }
     }
 
+    // Native binary (works on Windows, fallback on macOS)
     if (app.isPackaged) {
         _cachedPiperPath = path.join(process.resourcesPath, 'bin', binName)
     } else {
@@ -159,10 +165,19 @@ export function synthesise(text, options = {}) {
             '--length_scale', String(lengthScale.toFixed(2)),
         ]
 
+        // For the native piper binary, point it to the espeak-ng-data directory
+        // (Python piper handles this internally, but the native binary needs it)
+        const binDir = path.dirname(binaryPath)
+        const espeakDataDir = path.join(binDir, 'espeak-ng-data')
+        if (fs.existsSync(espeakDataDir)) {
+            args.push('--data-dir', binDir)
+        }
+
         console.log('[piper] Synthesising:', text.slice(0, 80) + (text.length > 80 ? '...' : ''))
 
         const proc = spawn(binaryPath, args, {
             stdio: ['pipe', 'pipe', 'pipe'],
+            cwd: binDir, // Set working directory to bin dir so piper can find its DLLs
         })
 
         const chunks = []

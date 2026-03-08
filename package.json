@@ -18,12 +18,7 @@
         "directories": {
             "output": "dist"
         },
-        "extraFiles": [
-            {
-                "from": "resources/bin/",
-                "to": "bin",
-                "filter": ["**/*"]
-            },
+        "extraResources": [
             {
                 "from": "resources/models/",
                 "to": "models",
@@ -32,6 +27,11 @@
             {
                 "from": "resources/voices/",
                 "to": "voices",
+                "filter": ["**/*", "!en_US-kathleen-medium.onnx"]
+            },
+            {
+                "from": "src/main/dictionaries/",
+                "to": "dictionaries",
                 "filter": ["**/*"]
             }
         ],
@@ -40,9 +40,16 @@
             "target": [
                 "dmg"
             ],
+            "extraResources": [
+                {
+                    "from": "resources/bin/",
+                    "to": "bin",
+                    "filter": ["**/*"]
+                }
+            ],
             "extendInfo": {
                 "NSMicrophoneUsageDescription": "VoiceAssist needs microphone access for dictation.",
-                "NSCameraUsageDescription": "VoiceAssist needs camera access for reading features."
+                "NSAppleEventsUsageDescription": "VoiceAssist needs automation access to paste text into your apps."
             },
             "entitlements": "build/entitlements.mac.plist",
             "entitlementsInherit": "build/entitlements.mac.plist",
@@ -52,6 +59,13 @@
         "win": {
             "target": [
                 "nsis"
+            ],
+            "extraResources": [
+                {
+                    "from": "resources/bin-win/",
+                    "to": "bin",
+                    "filter": ["**/*"]
+                }
             ]
         }
     },
