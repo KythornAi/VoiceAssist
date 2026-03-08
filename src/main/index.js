@@ -244,7 +244,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 function showControlStrip() {
     if (controlStripWin && !controlStripWin.isDestroyed()) { controlStripWin.show(); return }
     controlStripWin = new BrowserWindow({
-        width: 310, height: 396, frame: false,
+        width: 318, height: 404, frame: false,
         transparent: true,
         backgroundColor: '#00000000', // Fully transparent -- no compositor tint
         roundedCorners: true,
@@ -534,9 +534,9 @@ function setupIPC() {
     ipcMain.handle('set-control-strip-mode', (_, mode) => {
         if (!controlStripWin || controlStripWin.isDestroyed()) return
         if (mode === 'mini') {
-            controlStripWin.setSize(330, 56)
+            controlStripWin.setSize(338, 64)
         } else {
-            controlStripWin.setSize(310, 396)
+            controlStripWin.setSize(318, 404)
         }
         return true
     })

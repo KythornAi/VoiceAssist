@@ -13,7 +13,9 @@ export function renderControlStrip() {
     /* ── Expanded Panel ────────────────────────── */
     #strip {
       display: flex; flex-direction: column;
-      width: 100%; height: 100%;
+      /* Inset from window edges so macOS compositor artefact is hidden behind our content */
+      position: absolute;
+      inset: 4px;
       background: #111920;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
@@ -597,8 +599,15 @@ export function renderControlStrip() {
   document.getElementById('mini-btn-read').addEventListener('pointerdown', readAction)
   document.getElementById('mini-done-btn').addEventListener('pointerdown', dictateAction) // Done = stop dictating
 
-  document.getElementById('btn-history').addEventListener('pointerdown', () => window.api.openHistory())
-  document.getElementById('btn-settings').addEventListener('pointerdown', () => window.api.openSettings())
-  document.getElementById('btn-quit').addEventListener('pointerdown', () => window.api.quitApp())
-  document.getElementById('btn-close').addEventListener('pointerdown', () => window.api.hideWindow())
+  // Use both pointerdown and click for menu items -- focusable:false windows
+  // can swallow pointerdown on some macOS versions
+  const bind = (id, fn) => {
+    const el = document.getElementById(id)
+    el.addEventListener('pointerdown', fn)
+    el.addEventListener('click', fn)
+  }
+  bind('btn-history', () => window.api.openHistory())
+  bind('btn-settings', () => window.api.openSettings())
+  bind('btn-quit', () => window.api.quitApp())
+  bind('btn-close', () => window.api.hideWindow())
 }
