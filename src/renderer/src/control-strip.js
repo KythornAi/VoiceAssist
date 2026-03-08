@@ -164,9 +164,9 @@ export function renderControlStrip() {
     #strip.mini-mode {
       flex-direction: row;
       align-items: center;
-      padding: 0 6px;
+      padding: 0 10px;
       border-radius: 9999px;
-      height: 48px;
+      height: 56px;
       width: 100%;
       background: rgba(16, 25, 34, 0.9);
       backdrop-filter: blur(24px);
@@ -259,7 +259,7 @@ export function renderControlStrip() {
       background: #2b8cee !important;
       color: #fff;
       border-radius: 9999px;
-      padding: 9px 28px 9px 22px;
+      padding: 12px 32px 12px 24px;
       font-size: 14px; font-weight: 600;
       font-family: inherit;
       letter-spacing: 0.02em;
