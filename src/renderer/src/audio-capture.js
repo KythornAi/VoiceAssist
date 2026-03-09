@@ -71,14 +71,33 @@ export async function renderAudioCapture() {
             if (micSettings.microphone && micSettings.microphone !== 'default') {
                 audioConstraints.deviceId = { exact: micSettings.microphone }
             }
-            stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
-            console.log('[audio] Microphone access granted')
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
+            } catch (deviceErr) {
+                // If a specific device failed (e.g. Bluetooth disconnected), fall back to default
+                if (audioConstraints.deviceId) {
+                    console.warn(`[audio] Selected mic failed (${deviceErr.message}), falling back to default`)
+                    delete audioConstraints.deviceId
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
+                } else {
+                    throw deviceErr
+                }
+            }
+            console.log('[audio] Microphone access granted:', stream.getAudioTracks()[0]?.label || 'unknown device')
         } catch (err) {
             console.error('[audio] Microphone access denied:', err)
             playSound('error')
             window.api.sendAudioStatus({ type: 'error', message: 'Microphone access denied. Please allow microphone in System Preferences.' })
             return
         }
+
+        // Handle Bluetooth/USB device disconnecting mid-recording
+        stream.getAudioTracks().forEach(track => {
+            track.onended = () => {
+                console.warn('[audio] Mic track ended unexpectedly (device disconnected?)')
+                if (isRecording) stopAndSend()
+            }
+        })
 
         audioCtx = new AudioContext({ sampleRate: 16000 })
         source = audioCtx.createMediaStreamSource(stream)

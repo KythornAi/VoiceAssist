@@ -281,6 +281,7 @@ export function renderSettings() {
                 <option value="small.en">Small English (Accurate, ~500MB)</option>
               </select>
             </div>
+            <div id="whisper-model-note" class="note" style="display:none; padding: 0 16px;"></div>
             <div class="toggle-row">
               <div class="lhs">
                 <div class="icon-wrap" style="background: rgba(16,185,129,0.1); color: #10B981;">
@@ -645,6 +646,22 @@ export function renderSettings() {
     if (s.theme) applyTheme(s.theme)
     document.getElementById('lang-select').value = s.language || 'en-US'
     document.getElementById('whisper-model').value = s.whisperModel || 'base.en'
+    // Check if selected whisper model exists and show warning if not
+    async function checkWhisperModel(modelName) {
+      const note = document.getElementById('whisper-model-note')
+      if (!note) return
+      try {
+        const status = await window.api.checkWhisperModel(modelName)
+        if (status.missingModel) {
+          note.innerHTML = `<span style="color: var(--accent, #F59E0B);">Model not downloaded yet. Run <code>npm run download:whisper-small</code> in the project folder.</span>`
+          note.style.display = 'block'
+        } else {
+          note.style.display = 'none'
+        }
+      } catch { note.style.display = 'none' }
+    }
+    checkWhisperModel(s.whisperModel || 'base.en')
+    document.getElementById('whisper-model').addEventListener('change', (e) => checkWhisperModel(e.target.value))
     document.getElementById('auto-punct').checked = s.autoPunctuation !== false
 
     // Load Piper voices (grouped by gender)
@@ -702,7 +719,7 @@ export function renderSettings() {
         const select = document.getElementById('mic-select')
         select.innerHTML = '<option value="default">Default microphone</option>'
         mics.forEach(mic => {
-          if (mic.deviceId === 'default') return
+          if (mic.deviceId === 'default' || mic.deviceId === 'communications') return
           const opt = document.createElement('option')
           opt.value = mic.deviceId
           opt.textContent = mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`

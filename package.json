@@ -9,6 +9,8 @@
         "package:mac": "npm run build && electron-builder --mac",
         "package:win": "npm run build && electron-builder --win",
         "download:whisper": "node scripts/download-whisper.js",
+        "download:whisper-small": "node scripts/download-whisper.js small.en",
+        "download:whisper-all": "node scripts/download-whisper.js all",
         "download:piper": "node scripts/download-piper.js",
         "download:all": "node scripts/download-whisper.js && node scripts/download-piper.js"
     },

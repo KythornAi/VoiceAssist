@@ -25,7 +25,16 @@ const MODEL_DIR = path.join(ROOT, 'resources', 'models')
 const WHISPER_VERSION = 'v1.8.3'
 const WHISPER_REPO = 'https://github.com/ggml-org/whisper.cpp'
 const WHISPER_WIN_URL = `https://github.com/ggml-org/whisper.cpp/releases/download/${WHISPER_VERSION}/whisper-bin-x64.zip`
-const MODEL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin'
+
+// Supported models and their Hugging Face URLs
+const MODELS = {
+    'base.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin',
+    'small.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin',
+}
+
+// Parse CLI args: node download-whisper.js [model-name]
+// If no arg, downloads base.en only. Pass "small.en" or "all" for more.
+const requestedModel = process.argv[2] || 'base.en'
 
 fs.mkdirSync(BIN_DIR, { recursive: true })
 fs.mkdirSync(MODEL_DIR, { recursive: true })
@@ -76,17 +85,23 @@ function download(url, dest) {
     })
 }
 
-async function downloadModel() {
-    const modelPath = path.join(MODEL_DIR, 'ggml-base.en.bin')
+async function downloadModel(modelName) {
+    const url = MODELS[modelName]
+    if (!url) {
+        console.error(`Unknown model: "${modelName}". Available: ${Object.keys(MODELS).join(', ')}`)
+        process.exit(1)
+    }
+    const modelPath = path.join(MODEL_DIR, `ggml-${modelName}.bin`)
     if (fs.existsSync(modelPath)) {
         const size = fs.statSync(modelPath).size
-        if (size > 100_000_000) {
-            console.log('Model already downloaded, skipping.')
+        if (size > 50_000_000) {
+            console.log(`Model ${modelName} already downloaded (${(size / 1024 / 1024).toFixed(0)} MB), skipping.`)
             return
         }
     }
-    await download(MODEL_URL, modelPath)
-    console.log('Model download complete.')
+    console.log(`\nDownloading model: ${modelName}`)
+    await download(url, modelPath)
+    console.log(`Model ${modelName} download complete.`)
 }
 
 async function downloadWindowsBinary() {
@@ -152,8 +167,14 @@ async function compileMacBinary() {
 async function main() {
     console.log('=== VoiceAssist: whisper.cpp setup ===\n')
 
-    // Download model (all platforms)
-    await downloadModel()
+    // Download model(s)
+    if (requestedModel === 'all') {
+        for (const name of Object.keys(MODELS)) {
+            await downloadModel(name)
+        }
+    } else {
+        await downloadModel(requestedModel)
+    }
 
     // Platform-specific binary
     if (process.platform === 'darwin') {
