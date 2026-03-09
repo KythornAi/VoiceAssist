@@ -15,13 +15,13 @@ export function renderControlStrip() {
       display: flex; flex-direction: column;
       width: calc(100% - 16px); height: calc(100% - 16px);
       margin: 8px;
-      background: #111920;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
       border-radius: 16px;
       overflow: hidden;
       -webkit-app-region: drag;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      box-shadow: var(--shadow);
     }
     #strip button, #strip a { -webkit-app-region: no-drag; }
 
@@ -29,8 +29,8 @@ export function renderControlStrip() {
     .strip-header {
       display: flex; align-items: center; gap: 10px;
       padding: 14px 16px 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border);
+      background: var(--glass-hover);
     }
     .strip-header .logo-icon {
       width: 32px; height: 32px; border-radius: 8px;
@@ -58,7 +58,7 @@ export function renderControlStrip() {
       -webkit-app-region: no-drag;
       transition: all 0.15s;
     }
-    .header-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+    .header-btn:hover { background: var(--surface); color: var(--text); }
     .header-btn svg { width: 14px; height: 14px; }
 
     /* ── Menu Items ───────────────────────────── */
@@ -105,7 +105,7 @@ export function renderControlStrip() {
       border-radius: 8px;
       transition: all 0.15s;
     }
-    .appearance-row:hover { background: rgba(255, 255, 255, 0.04); }
+    .appearance-row:hover { background: var(--glass-hover); }
     .appearance-row .lhs {
       display: flex; align-items: center; gap: 10px;
     }
@@ -116,7 +116,7 @@ export function renderControlStrip() {
     /* Sun/Moon pill toggle */
     .theme-pill {
       display: flex; align-items: center; gap: 2px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--surface-2);
       padding: 2px;
       border-radius: 12px;
       border: none;
@@ -142,7 +142,7 @@ export function renderControlStrip() {
     .theme-pill .theme-opt:not(.active-light):not(.active-dark) svg { color: var(--text-muted); }
 
     .divider {
-      height: 1px; background: rgba(255, 255, 255, 0.06);
+      height: 1px; background: var(--border);
       margin: 3px 12px;
     }
 
@@ -152,8 +152,8 @@ export function renderControlStrip() {
       gap: 2px;
       padding: 8px 0 12px;
       height: 32px;
-      background: rgba(255, 255, 255, 0.03);
-      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      background: var(--glass-hover);
+      border-top: 1px solid var(--border);
     }
     .waveform-footer .bar {
       width: 3px; border-radius: 2px;
@@ -170,11 +170,11 @@ export function renderControlStrip() {
       height: 56px;
       width: calc(100% - 16px);
       margin: 8px;
-      background: rgba(16, 25, 34, 0.9);
+      background: var(--glass);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
       position: relative;
     }
     .mini-mode .strip-header,
@@ -243,7 +243,7 @@ export function renderControlStrip() {
     /* Vertical separator */
     .mini-sep {
       width: 1px; height: 24px;
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--border);
       flex-shrink: 0;
     }
 
@@ -255,7 +255,7 @@ export function renderControlStrip() {
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
     }
-    .mini-action:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+    .mini-action:hover { background: var(--surface); transform: scale(1.05); }
     .mini-action:active { transform: scale(0.9); }
     .mini-action.reading-active { background: rgba(43, 140, 238, 0.2); }
     .mini-action.reading-active svg { stroke: #2b8cee !important; }
@@ -290,7 +290,7 @@ export function renderControlStrip() {
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
     }
-    .mini-expand:hover { background: rgba(255, 255, 255, 0.1); }
+    .mini-expand:hover { background: var(--surface); }
 
     /* Subtle glow under pill -- contained within bounds */
     #strip.mini-mode::after {
@@ -437,8 +437,8 @@ export function renderControlStrip() {
 
         <div class="mini-sep"></div>
 
-        <button class="mini-action" id="mini-btn-read" title="Read Selection">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <button class="mini-action" id="mini-btn-read" title="Read Selection" style="color: var(--text);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
         </button>
 
         <button class="mini-done-btn" id="mini-done-btn">
@@ -446,8 +446,8 @@ export function renderControlStrip() {
           <span>Done</span>
         </button>
 
-        <button class="mini-expand" id="mini-btn-expand" title="Expand">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <button class="mini-expand" id="mini-btn-expand" title="Expand" style="color: var(--text-muted);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         </button>
       </div>
     </div>

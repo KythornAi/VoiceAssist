@@ -48,6 +48,7 @@ const DEFAULTS = {
     removeFillerWords: true,
     soundEffects: true,
     microphone: 'default',
+    whisperModel: 'base.en',
     language: 'en-US',
     voice: 'en-US-AriaNeural',
     translationLanguage: 'en',
@@ -278,7 +279,7 @@ function showSettings() {
         return
     }
     settingsWin = new BrowserWindow({
-        width: 700, height: 620, minWidth: 580, minHeight: 500,
+        width: 700, height: 620, minWidth: 620, minHeight: 500,
         title: 'VoiceAssist — Settings', show: false,
         webPreferences: { preload: getPreload(), contextIsolation: true, nodeIntegration: false }
     })
@@ -611,13 +612,18 @@ function setupIPC() {
     })
 
     // ── whisper.cpp sidecar ──────────────────────────────────────────
-    ipcMain.handle('check-whisper', () => checkWhisperReady())
+    ipcMain.handle('check-whisper', () => checkWhisperReady(settings.get('whisperModel') || 'base.en'))
+    ipcMain.handle('check-whisper-model', (_, modelName) => {
+        return checkWhisperReady(modelName)
+    })
 
     ipcMain.handle('transcribe-audio', async (_, pcmArray) => {
         try {
-            const float32 = new Float32Array(pcmArray)
+            const buf = Buffer.isBuffer(pcmArray) ? pcmArray : Buffer.from(pcmArray)
+            const float32 = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
             const lang = (settings.get('language') || 'en').split('-')[0]
-            const rawText = await transcribe(float32, lang)
+            const model = settings.get('whisperModel') || 'base.en'
+            const rawText = await transcribe(float32, lang, model)
 
             if (rawText) {
                 // Run the full text polish pipeline

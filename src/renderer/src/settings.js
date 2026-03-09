@@ -2,6 +2,7 @@ export function renderSettings() {
   document.title = 'VoiceAssist — Settings'
   const style = document.createElement('style')
   style.textContent = `
+    * { box-sizing: border-box; }
     body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
 
     header {
@@ -45,7 +46,7 @@ export function renderSettings() {
     nav button.active { background: var(--accent); color: white; }
 
     /* ── Panels ───────────────────────────────── */
-    .panels { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .panels { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 28px 32px; }
     .panel  { display: none; flex-direction: column; gap: 24px; }
     .panel.visible { display: flex; animation: fadeIn 0.2s ease; }
     .panel-header h1 { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
@@ -65,7 +66,7 @@ export function renderSettings() {
       transition: background 0.15s;
     }
     .toggle-row:hover { background: var(--surface-2); }
-    .toggle-row .lhs { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .toggle-row .lhs { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
     .toggle-row .lhs .icon-wrap {
       width: 36px; height: 36px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
@@ -275,7 +276,10 @@ export function renderSettings() {
                   <div class="sub">Choose between speed or accuracy</div>
                 </div>
               </div>
-              <select class="premium-select"><option>Whisper Large v3 (Best)</option><option>Whisper Base (Fast)</option></select>
+              <select id="whisper-model" class="premium-select">
+                <option value="base.en">Base English (Fast, ~150MB)</option>
+                <option value="small.en">Small English (Accurate, ~500MB)</option>
+              </select>
             </div>
             <div class="toggle-row">
               <div class="lhs">
@@ -302,7 +306,7 @@ export function renderSettings() {
                   <div class="sub">Shortcut to toggle listening</div>
                 </div>
               </div>
-              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; max-width:200px; flex-shrink:1;">
                 <div class="hotkey-display" id="dictation-hotkey">CMD + SHIFT + SPACE</div>
                 <button id="reset-dictation-hotkey" class="premium-btn-sm" style="font-size:10px; padding:4px 8px;">Reset Default</button>
               </div>
@@ -444,7 +448,7 @@ export function renderSettings() {
                   <div class="sub">Shortcut to read highlighted text</div>
                 </div>
               </div>
-              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; max-width:200px; flex-shrink:1;">
                 <div class="hotkey-display" id="read-hotkey">CMD + ALT + R</div>
                 <button id="reset-read-hotkey" class="premium-btn-sm" style="font-size:10px; padding:4px 8px;">Reset Default</button>
               </div>
@@ -640,6 +644,7 @@ export function renderSettings() {
   window.api.getSettings().then(s => {
     if (s.theme) applyTheme(s.theme)
     document.getElementById('lang-select').value = s.language || 'en-US'
+    document.getElementById('whisper-model').value = s.whisperModel || 'base.en'
     document.getElementById('auto-punct').checked = s.autoPunctuation !== false
 
     // Load Piper voices (grouped by gender)
@@ -684,6 +689,32 @@ export function renderSettings() {
 
     if (s.dictationHotkey) dictationRecorder.setValue(s.dictationHotkey)
     if (s.readHotkey) readRecorder.setValue(s.readHotkey)
+
+    // Enumerate microphone devices
+    async function populateMicDropdown() {
+      try {
+        // Need a temporary getUserMedia call to get device labels (browser requires permission)
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        tempStream.getTracks().forEach(t => t.stop())
+
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const mics = devices.filter(d => d.kind === 'audioinput')
+        const select = document.getElementById('mic-select')
+        select.innerHTML = '<option value="default">Default microphone</option>'
+        mics.forEach(mic => {
+          if (mic.deviceId === 'default') return
+          const opt = document.createElement('option')
+          opt.value = mic.deviceId
+          opt.textContent = mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`
+          select.appendChild(opt)
+        })
+        if (s.microphone) select.value = s.microphone
+      } catch (err) {
+        console.warn('[settings] Could not enumerate microphones:', err.message)
+      }
+    }
+    populateMicDropdown()
+    navigator.mediaDevices.ondevicechange = populateMicDropdown
   })
 
   document.getElementById('speed-slider').addEventListener('input', e => {
@@ -794,6 +825,8 @@ export function renderSettings() {
   // ── Save ────────────────────────────────────────────────────────
   document.getElementById('btn-save').addEventListener('click', async () => {
     const pairs = {
+      microphone: document.getElementById('mic-select').value,
+      whisperModel: document.getElementById('whisper-model').value,
       language: document.getElementById('lang-select').value,
       dictationHotkey: dictationRecorder.getValue(),
       readHotkey: readRecorder.getValue(),

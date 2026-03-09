@@ -60,15 +60,18 @@ export async function renderAudioCapture() {
 
         console.log('[audio] Requesting microphone access...')
         try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    sampleRate: 16000,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                }
-            })
+            const micSettings = await window.api.getSettings()
+            const audioConstraints = {
+                sampleRate: 16000,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            }
+            if (micSettings.microphone && micSettings.microphone !== 'default') {
+                audioConstraints.deviceId = { exact: micSettings.microphone }
+            }
+            stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
             console.log('[audio] Microphone access granted')
         } catch (err) {
             console.error('[audio] Microphone access denied:', err)
@@ -76,8 +79,6 @@ export async function renderAudioCapture() {
             window.api.sendAudioStatus({ type: 'error', message: 'Microphone access denied. Please allow microphone in System Preferences.' })
             return
         }
-
-        playSound('start')
 
         audioCtx = new AudioContext({ sampleRate: 16000 })
         source = audioCtx.createMediaStreamSource(stream)
@@ -108,6 +109,9 @@ export async function renderAudioCapture() {
         source.connect(processor)
         processor.connect(audioCtx.destination)
 
+        // Play start sound AFTER pipeline is recording so we don't miss audio
+        playSound('start')
+
         isRecording = true
         window.api.sendAudioStatus({ type: 'listening' })
     }
@@ -117,8 +121,9 @@ export async function renderAudioCapture() {
         if (!isRecording) return
         isRecording = false
 
-        // Tear down the audio pipeline
+        // Tear down the audio pipeline (flush delay lets worklet send its last buffer)
         try { if (processor.port) processor.port.postMessage('stop') } catch { }
+        await new Promise(r => setTimeout(r, 150))
         try { processor.disconnect() } catch { }
         try { source.disconnect() } catch { }
         try { stream.getTracks().forEach(t => t.stop()) } catch { }
@@ -140,7 +145,7 @@ export async function renderAudioCapture() {
 
         // Send raw PCM to main process -- whisper.cpp runs there
         try {
-            const text = await window.api.transcribeAudio(Array.from(audio))
+            const text = await window.api.transcribeAudio(audio.buffer.slice(0))
             if (text) {
                 playSound('success')
             }

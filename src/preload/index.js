@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('api', {
     sendTranscript: (text) => ipcRenderer.invoke('audio-transcript', text),
     transcribeAudio: (pcmArray) => ipcRenderer.invoke('transcribe-audio', pcmArray),
     checkWhisper: () => ipcRenderer.invoke('check-whisper'),
+    checkWhisperModel: (model) => ipcRenderer.invoke('check-whisper-model', model),
 
     // Piper TTS
     checkPiper: () => ipcRenderer.invoke('check-piper'),

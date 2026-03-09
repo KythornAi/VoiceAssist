@@ -22,13 +22,12 @@ function getBinaryPath() {
     return path.join(app.getAppPath(), 'resources', 'bin', binName)
 }
 
-function getModelPath() {
+function getModelPath(model = 'base.en') {
+    const filename = `ggml-${model}.bin`
     if (app.isPackaged) {
-        // In packaged app, model is bundled via extraFiles
-        return path.join(process.resourcesPath, 'models', 'ggml-base.en.bin')
+        return path.join(process.resourcesPath, 'models', filename)
     }
-    // In dev, look in project resources/models/
-    return path.join(app.getAppPath(), 'resources', 'models', 'ggml-base.en.bin')
+    return path.join(app.getAppPath(), 'resources', 'models', filename)
 }
 
 /**
@@ -78,10 +77,10 @@ function writeWav(filePath, float32Audio) {
  * Transcribe a Float32Array of 16kHz mono audio using whisper.cpp.
  * Returns a Promise that resolves to the transcript string.
  */
-export function transcribe(float32Audio, language = 'en') {
+export function transcribe(float32Audio, language = 'en', model = 'base.en') {
     return new Promise((resolve, reject) => {
         const binaryPath = getBinaryPath()
-        const modelPath = getModelPath()
+        const modelPath = getModelPath(model)
 
         // Check binary exists
         if (!fs.existsSync(binaryPath)) {
@@ -163,14 +162,14 @@ function cleanup(filePath) {
  * Check if whisper.cpp binary and model are available.
  * Returns { ready: boolean, missingBinary: boolean, missingModel: boolean }
  */
-export function checkWhisperReady() {
+export function checkWhisperReady(model = 'base.en') {
     const binaryExists = fs.existsSync(getBinaryPath())
-    const modelExists = fs.existsSync(getModelPath())
+    const modelExists = fs.existsSync(getModelPath(model))
     return {
         ready: binaryExists && modelExists,
         missingBinary: !binaryExists,
         missingModel: !modelExists,
         binaryPath: getBinaryPath(),
-        modelPath: getModelPath(),
+        modelPath: getModelPath(model),
     }
 }
