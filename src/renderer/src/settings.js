@@ -64,19 +64,20 @@ export function renderSettings() {
       padding: 14px 16px; gap: 14px;
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
       transition: background 0.15s;
+      flex-wrap: wrap;
     }
     .toggle-row:hover { background: var(--surface-2); }
-    .toggle-row .lhs { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .toggle-row .lhs { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 180px; }
     .toggle-row .lhs .icon-wrap {
       width: 36px; height: 36px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
     }
-    .toggle-row .lhs .text-wrap { flex: 1; min-width: 160px; }
+    .toggle-row .lhs .text-wrap { flex: 1; min-width: 0; }
     .toggle-row .lhs label { margin: 0; color: var(--text); font-weight: 500; font-size: 14px; }
     .toggle-row .lhs .sub  { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
     .toggle-row select,
-    .toggle-row .premium-select { width: auto; flex-shrink: 0; max-width: 260px; }
+    .toggle-row .premium-select { width: auto; flex-shrink: 1; min-width: 140px; max-width: 260px; }
 
     .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -646,15 +647,53 @@ export function renderSettings() {
     if (s.theme) applyTheme(s.theme)
     document.getElementById('lang-select').value = s.language || 'en-US'
     document.getElementById('whisper-model').value = s.whisperModel || 'base.en'
-    // Check if selected whisper model exists and show warning if not
+    // Check if selected whisper model exists; offer download if missing
+    let downloadCleanup = null
     async function checkWhisperModel(modelName) {
       const note = document.getElementById('whisper-model-note')
       if (!note) return
+      if (downloadCleanup) { downloadCleanup(); downloadCleanup = null }
       try {
         const status = await window.api.checkWhisperModel(modelName)
         if (status.missingModel) {
-          note.innerHTML = `<span style="color: var(--accent, #F59E0B);">Model not downloaded yet. Run <code>npm run download:whisper-small</code> in the project folder.</span>`
+          note.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 0;">
+              <span style="color:var(--orange); flex:1;">Model not downloaded yet.</span>
+              <button id="download-model-btn" class="premium-btn-sm" style="white-space:nowrap;">Download (~466 MB)</button>
+            </div>
+            <div id="download-progress-wrap" style="display:none; margin-top:8px;">
+              <div style="background:var(--surface-2); border-radius:var(--radius-full); height:8px; overflow:hidden;">
+                <div id="download-progress-bar" style="height:100%; width:0%; background:var(--accent); border-radius:var(--radius-full); transition:width 0.3s;"></div>
+              </div>
+              <div id="download-progress-text" style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Preparing download...</div>
+            </div>`
           note.style.display = 'block'
+
+          document.getElementById('download-model-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('download-model-btn')
+            btn.disabled = true
+            btn.textContent = 'Downloading...'
+            document.getElementById('download-progress-wrap').style.display = 'block'
+
+            // Listen for progress events
+            downloadCleanup = window.api.onModelDownloadProgress((data) => {
+              if (data.model !== modelName) return
+              const bar = document.getElementById('download-progress-bar')
+              const text = document.getElementById('download-progress-text')
+              if (bar) bar.style.width = data.percent + '%'
+              if (text) text.textContent = `${data.downloadedMB} MB / ${data.totalMB} MB (${data.percent}%)`
+            })
+
+            const result = await window.api.downloadWhisperModel(modelName)
+            if (downloadCleanup) { downloadCleanup(); downloadCleanup = null }
+
+            if (result.success) {
+              note.innerHTML = `<span style="color:var(--green);">Model downloaded successfully!</span>`
+              setTimeout(() => { note.style.display = 'none' }, 3000)
+            } else {
+              note.innerHTML = `<span style="color:var(--red);">Download failed: ${result.error}</span>`
+            }
+          })
         } else {
           note.style.display = 'none'
         }

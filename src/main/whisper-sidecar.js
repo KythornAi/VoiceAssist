@@ -2,7 +2,13 @@ import { spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import https from 'https'
 import { app } from 'electron'
+
+const MODEL_URLS = {
+    'base.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin',
+    'small.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin',
+}
 
 /**
  * whisper.cpp sidecar -- spawns the native whisper-cli binary to transcribe audio.
@@ -172,4 +178,83 @@ export function checkWhisperReady(model = 'base.en') {
         binaryPath: getBinaryPath(),
         modelPath: getModelPath(model),
     }
+}
+
+/**
+ * Download a whisper model from Hugging Face with progress callbacks.
+ * onProgress receives { percent, downloadedMB, totalMB }.
+ * Returns a Promise that resolves when complete.
+ */
+export function downloadModel(model, onProgress) {
+    return new Promise((resolve, reject) => {
+        const url = MODEL_URLS[model]
+        if (!url) {
+            reject(new Error(`Unknown model: "${model}"`))
+            return
+        }
+
+        const modelPath = getModelPath(model)
+        const modelDir = path.dirname(modelPath)
+        fs.mkdirSync(modelDir, { recursive: true })
+
+        // If already exists and big enough, skip
+        if (fs.existsSync(modelPath)) {
+            const size = fs.statSync(modelPath).size
+            if (size > 50_000_000) {
+                onProgress?.({ percent: 100, downloadedMB: +(size / 1024 / 1024).toFixed(1), totalMB: +(size / 1024 / 1024).toFixed(1) })
+                resolve()
+                return
+            }
+        }
+
+        const tmpPath = modelPath + '.downloading'
+        const file = fs.createWriteStream(tmpPath)
+
+        function follow(u) {
+            const parsed = new URL(u)
+            https.get(parsed, (res) => {
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    follow(new URL(res.headers.location, u).href)
+                    return
+                }
+                if (res.statusCode !== 200) {
+                    cleanup(tmpPath)
+                    reject(new Error(`HTTP ${res.statusCode} downloading model`))
+                    return
+                }
+
+                const total = parseInt(res.headers['content-length'], 10) || 0
+                let downloaded = 0
+
+                res.on('data', (chunk) => {
+                    downloaded += chunk.length
+                    if (total > 0) {
+                        onProgress?.({
+                            percent: Math.floor((downloaded / total) * 100),
+                            downloadedMB: +(downloaded / 1024 / 1024).toFixed(1),
+                            totalMB: +(total / 1024 / 1024).toFixed(1),
+                        })
+                    }
+                })
+
+                res.pipe(file)
+                file.on('finish', () => {
+                    file.close()
+                    // Rename from .downloading to final path
+                    fs.renameSync(tmpPath, modelPath)
+                    console.log(`[whisper] Model ${model} downloaded to ${modelPath}`)
+                    resolve()
+                })
+                file.on('error', (err) => {
+                    cleanup(tmpPath)
+                    reject(err)
+                })
+            }).on('error', (err) => {
+                cleanup(tmpPath)
+                reject(err)
+            })
+        }
+
+        follow(url)
+    })
 }

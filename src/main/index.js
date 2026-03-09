@@ -10,7 +10,7 @@ import fs from 'fs'
 import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
-import { transcribe, checkWhisperReady } from './whisper-sidecar.js'
+import { transcribe, checkWhisperReady, downloadModel } from './whisper-sidecar.js'
 import { polishText } from './text-polish.js'
 import { synthesise, checkPiperReady, listVoices } from './piper-sidecar.js'
 
@@ -615,6 +615,20 @@ function setupIPC() {
     ipcMain.handle('check-whisper', () => checkWhisperReady(settings.get('whisperModel') || 'base.en'))
     ipcMain.handle('check-whisper-model', (_, modelName) => {
         return checkWhisperReady(modelName)
+    })
+
+    ipcMain.handle('download-whisper-model', async (event, modelName) => {
+        try {
+            await downloadModel(modelName, (progress) => {
+                // Send progress to all renderer windows
+                for (const win of BrowserWindow.getAllWindows()) {
+                    win.webContents.send('model-download-progress', { model: modelName, ...progress })
+                }
+            })
+            return { success: true }
+        } catch (err) {
+            return { success: false, error: err.message }
+        }
     })
 
     ipcMain.handle('transcribe-audio', async (_, pcmArray) => {

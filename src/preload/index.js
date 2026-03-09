@@ -49,6 +49,12 @@ contextBridge.exposeInMainWorld('api', {
     transcribeAudio: (pcmArray) => ipcRenderer.invoke('transcribe-audio', pcmArray),
     checkWhisper: () => ipcRenderer.invoke('check-whisper'),
     checkWhisperModel: (model) => ipcRenderer.invoke('check-whisper-model', model),
+    downloadWhisperModel: (model) => ipcRenderer.invoke('download-whisper-model', model),
+    onModelDownloadProgress: (cb) => {
+        const h = (_, data) => cb(data)
+        ipcRenderer.on('model-download-progress', h)
+        return () => ipcRenderer.removeListener('model-download-progress', h)
+    },
 
     // Piper TTS
     checkPiper: () => ipcRenderer.invoke('check-piper'),
