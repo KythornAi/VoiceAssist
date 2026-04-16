@@ -29,17 +29,10 @@ if [[ ! -x "$WHISPER_BIN" ]]; then
 fi
 
 # ── Models ─────────────────────────────────────────────────────────────────────
-declare -A MODELS
-MODELS[large-v3-turbo]="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"
-MODELS[distil-large-v3]="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-distil-large-v3.bin"
-
-declare -A MODEL_FILES
-MODEL_FILES[large-v3-turbo]="$MODEL_DIR/ggml-large-v3-turbo-q5_0.bin"
-MODEL_FILES[distil-large-v3]="$MODEL_DIR/ggml-distil-large-v3.bin"
-
-declare -A MODEL_SIZES
-MODEL_SIZES[large-v3-turbo]="~547 MB"
-MODEL_SIZES[distil-large-v3]="~756 MB"
+URL_TURBO="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"
+URL_DISTIL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-distil-large-v3.bin"
+FILE_TURBO="$MODEL_DIR/ggml-large-v3-turbo-q5_0.bin"
+FILE_DISTIL="$MODEL_DIR/ggml-distil-large-v3.bin"
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -57,20 +50,21 @@ echo -e "${CYAN}whisper-cli: $WHISPER_BIN${RESET}"
 echo ""
 
 # ── Download models if missing ─────────────────────────────────────────────────
-for name in "${!MODELS[@]}"; do
-  file="${MODEL_FILES[$name]}"
-  url="${MODELS[$name]}"
-  size="${MODEL_SIZES[$name]}"
+if [[ -f "$FILE_TURBO" ]]; then
+  echo -e "${GREEN}checkmark${RESET} large-v3-turbo already downloaded"
+else
+  echo -e "${YELLOW}Downloading large-v3-turbo (~547 MB)...${RESET}"
+  curl -L --progress-bar -o "$FILE_TURBO" "$URL_TURBO"
+  echo -e "${GREEN}checkmark${RESET} large-v3-turbo downloaded"
+fi
 
-  if [[ -f "$file" ]]; then
-    echo -e "${GREEN}✓${RESET} $name already downloaded"
-  else
-    echo -e "${YELLOW}↓${RESET} Downloading $name ($size)..."
-    echo "  URL: $url"
-    curl -L --progress-bar -o "$file" "$url"
-    echo -e "${GREEN}✓${RESET} $name downloaded"
-  fi
-done
+if [[ -f "$FILE_DISTIL" ]]; then
+  echo -e "${GREEN}checkmark${RESET} distil-large-v3 already downloaded"
+else
+  echo -e "${YELLOW}Downloading distil-large-v3 (~756 MB)...${RESET}"
+  curl -L --progress-bar -o "$FILE_DISTIL" "$URL_DISTIL"
+  echo -e "${GREEN}checkmark${RESET} distil-large-v3 downloaded"
+fi
 
 echo ""
 
@@ -90,20 +84,17 @@ else
   echo "Speak clearly. Recording starts now."
   echo ""
 
-  # rec is from SoX. Falls back to ffmpeg if SoX not installed.
   if command -v rec &>/dev/null; then
     rec -r 16000 -c 1 -b 16 "$TEMP_WAV" trim 0 30
   elif command -v ffmpeg &>/dev/null; then
     ffmpeg -f avfoundation -i ":0" -ar 16000 -ac 1 -t 30 "$TEMP_WAV" -y -loglevel error
   else
     echo "ERROR: Neither SoX (rec) nor ffmpeg is installed."
-    echo "Install with: brew install sox   OR   brew install ffmpeg"
-    echo "Or pass a WAV file: ./scripts/benchmark-stt.sh path/to/audio.wav"
     exit 1
   fi
 
   AUDIO_FILE="$TEMP_WAV"
-  echo -e "${GREEN}✓${RESET} Recording saved."
+  echo -e "${GREEN}checkmark${RESET} Recording saved."
 fi
 
 echo ""
@@ -112,50 +103,39 @@ echo ""
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 RESULT_FILE="$RESULTS_DIR/benchmark-$TIMESTAMP.md"
 
-declare -A TRANSCRIPTS
-declare -A DURATIONS
+echo -e "${BOLD}Running large-v3-turbo...${RESET}"
+START_MS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
+TRANSCRIPT_TURBO=$("$WHISPER_BIN" -m "$FILE_TURBO" -f "$AUDIO_FILE" --language en --no-timestamps --output-txt 2>/dev/null || true)
+END_MS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
+DURATION_TURBO=$(echo "scale=1; ($END_MS - $START_MS) / 1000" | bc)s
+echo -e "${GREEN}checkmark${RESET} Done in $DURATION_TURBO"
+echo ""
 
-for name in large-v3-turbo distil-large-v3; do
-  model_file="${MODEL_FILES[$name]}"
-  echo -e "${BOLD}Running $name...${RESET}"
-
-  START_NS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
-  TRANSCRIPT=$("$WHISPER_BIN" \
-    -m "$model_file" \
-    -f "$AUDIO_FILE" \
-    --language en \
-    --no-timestamps \
-    --output-txt \
-    2>/dev/null || true)
-  END_NS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
-
-  ELAPSED_MS=$(( END_NS - START_NS ))
-  ELAPSED_S=$(echo "scale=1; $ELAPSED_MS / 1000" | bc)
-
-  TRANSCRIPTS[$name]="$TRANSCRIPT"
-  DURATIONS[$name]="${ELAPSED_S}s"
-
-  echo -e "${GREEN}✓${RESET} Done in ${ELAPSED_S}s"
-  echo ""
-done
+echo -e "${BOLD}Running distil-large-v3...${RESET}"
+START_MS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
+TRANSCRIPT_DISTIL=$("$WHISPER_BIN" -m "$FILE_DISTIL" -f "$AUDIO_FILE" --language en --no-timestamps --output-txt 2>/dev/null || true)
+END_MS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000')
+DURATION_DISTIL=$(echo "scale=1; ($END_MS - $START_MS) / 1000" | bc)s
+echo -e "${GREEN}checkmark${RESET} Done in $DURATION_DISTIL"
+echo ""
 
 # ── Print results ──────────────────────────────────────────────────────────────
 echo ""
-echo -e "${BOLD}════════════════════════════════════════════${RESET}"
+echo -e "${BOLD}============================================${RESET}"
 echo -e "${BOLD}  Results${RESET}"
-echo -e "${BOLD}════════════════════════════════════════════${RESET}"
+echo -e "${BOLD}============================================${RESET}"
 echo ""
-echo -e "${CYAN}large-v3-turbo${RESET} (time: ${DURATIONS[large-v3-turbo]})"
-echo "──────────────────────────────────────────"
-echo "${TRANSCRIPTS[large-v3-turbo]}"
+echo -e "${CYAN}large-v3-turbo${RESET} (time: $DURATION_TURBO)"
+echo "------------------------------------------"
+echo "$TRANSCRIPT_TURBO"
 echo ""
-echo -e "${CYAN}distil-large-v3${RESET} (time: ${DURATIONS[distil-large-v3]})"
-echo "──────────────────────────────────────────"
-echo "${TRANSCRIPTS[distil-large-v3]}"
+echo -e "${CYAN}distil-large-v3${RESET} (time: $DURATION_DISTIL)"
+echo "------------------------------------------"
+echo "$TRANSCRIPT_DISTIL"
 echo ""
 echo -e "${BOLD}Speed comparison:${RESET}"
-echo "  large-v3-turbo:  ${DURATIONS[large-v3-turbo]}"
-echo "  distil-large-v3: ${DURATIONS[distil-large-v3]}"
+echo "  large-v3-turbo:  $DURATION_TURBO"
+echo "  distil-large-v3: $DURATION_DISTIL"
 echo ""
 
 # ── Write markdown results file ────────────────────────────────────────────────
@@ -170,18 +150,18 @@ cat > "$RESULT_FILE" <<EOF
 
 | Model | Time |
 |-------|------|
-| large-v3-turbo (q5_0) | ${DURATIONS[large-v3-turbo]} |
-| distil-large-v3 | ${DURATIONS[distil-large-v3]} |
+| large-v3-turbo (q5_0) | $DURATION_TURBO |
+| distil-large-v3 | $DURATION_DISTIL |
 
 ## Transcripts
 
 ### large-v3-turbo
 
-${TRANSCRIPTS[large-v3-turbo]}
+$TRANSCRIPT_TURBO
 
 ### distil-large-v3
 
-${TRANSCRIPTS[distil-large-v3]}
+$TRANSCRIPT_DISTIL
 
 ## Notes
 

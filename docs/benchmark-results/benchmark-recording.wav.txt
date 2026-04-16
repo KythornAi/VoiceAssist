@@ -1,0 +1,1 @@
+ The quick brown fox jumps over the lazy dog. My name is Kyle, and I am testing a voice dictation app called Voice Assist. It needs to handle everyday sentences, technical words like electron and typescript, and numbers like 42, 1000, and 2028.
