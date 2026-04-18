@@ -1,0 +1,23 @@
+export type SessionState = 'idle' | 'recording' | 'processing' | 'cancelled'
+
+export interface AudioChunk {
+  sessionId: string
+  seq: number
+  buffer: ArrayBuffer
+}
+
+export interface AppSettings {
+  dictationHotkey: string
+  autoPunctuation: boolean
+  microphone: string
+  language: string
+  theme: 'dark' | 'light'
+  launchAtStartup: boolean
+  maxHistoryItems: number
+}
+
+export interface HistoryItem {
+  id: string
+  text: string
+  timestamp: string
+}

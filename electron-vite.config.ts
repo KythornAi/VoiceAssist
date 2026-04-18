@@ -2,8 +2,13 @@ import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 
+const shared = resolve(__dirname, 'src/shared')
+
 export default defineConfig({
     main: {
+        resolve: {
+            alias: { '@shared': shared }
+        },
         build: {
             rollupOptions: {
                 input: resolve(__dirname, 'src/main/index.ts'),
@@ -12,6 +17,9 @@ export default defineConfig({
         }
     },
     preload: {
+        resolve: {
+            alias: { '@shared': shared }
+        },
         build: {
             rollupOptions: {
                 input: { index: resolve(__dirname, 'src/preload/index.ts') }
@@ -23,7 +31,7 @@ export default defineConfig({
         plugins: [svelte()],
         resolve: {
             alias: {
-                '@shared': resolve(__dirname, 'src/shared')
+                '@shared': shared
             }
         },
         build: {
