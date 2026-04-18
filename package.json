@@ -6,6 +6,11 @@
     "scripts": {
         "dev": "electron-vite dev",
         "build": "electron-vite build",
+        "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && svelte-check --tsconfig tsconfig.web.json",
+        "test": "vitest run",
+        "test:ui": "vitest --ui",
+        "lint": "eslint src",
+        "format": "prettier --write src",
         "package:mac": "npm run build && electron-builder --mac",
         "package:win": "npm run build && electron-builder --win",
         "download:whisper": "node scripts/download-whisper.js",
@@ -24,17 +29,24 @@
             {
                 "from": "resources/models/",
                 "to": "models",
-                "filter": ["**/*"]
+                "filter": [
+                    "**/*"
+                ]
             },
             {
                 "from": "resources/voices/",
                 "to": "voices",
-                "filter": ["**/*", "!en_US-kathleen-medium.onnx"]
+                "filter": [
+                    "**/*",
+                    "!en_US-kathleen-medium.onnx"
+                ]
             },
             {
                 "from": "src/main/dictionaries/",
                 "to": "dictionaries",
-                "filter": ["**/*"]
+                "filter": [
+                    "**/*"
+                ]
             }
         ],
         "mac": {
@@ -46,7 +58,9 @@
                 {
                     "from": "resources/bin/",
                     "to": "bin",
-                    "filter": ["**/*"]
+                    "filter": [
+                        "**/*"
+                    ]
                 }
             ],
             "extendInfo": {
@@ -66,16 +80,35 @@
                 {
                     "from": "resources/bin-win/",
                     "to": "bin",
-                    "filter": ["**/*"]
+                    "filter": [
+                        "**/*"
+                    ]
                 }
             ]
         }
     },
     "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^4.0.4",
+        "@tsconfig/svelte": "^5.0.8",
+        "@types/node": "^25.6.0",
+        "@typescript-eslint/eslint-plugin": "^8.58.2",
+        "@typescript-eslint/parser": "^8.58.2",
+        "@vitest/ui": "^4.1.4",
         "electron": "^33.2.0",
         "electron-builder": "^25.1.8",
         "electron-vite": "^2.3.0",
-        "terser": "^5.46.0"
+        "eslint": "^10.2.1",
+        "eslint-plugin-svelte": "^3.17.0",
+        "prettier": "^3.8.3",
+        "prettier-plugin-svelte": "^3.5.1",
+        "svelte": "^5.55.4",
+        "svelte-check": "^4.4.6",
+        "terser": "^5.46.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.58.2",
+        "vitest": "^4.1.4"
     },
-    "dependencies": {}
+    "dependencies": {
+        "electron-log": "^5.4.3"
+    }
 }
