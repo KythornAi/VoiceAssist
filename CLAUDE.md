@@ -137,7 +137,7 @@ Touch only what you must. Don't improve adjacent code, comments, or formatting. 
 
 Transform tasks into verifiable goals. For multi-step tasks, state a brief plan with verify steps. Loop until verified. Weak criteria ("make it work") require constant clarification -- define success upfront.
 
----
+***
 
 ## Non-Goals for V2
 
@@ -149,3 +149,4 @@ Transform tasks into verifiable goals. For multi-step tasks, state a brief plan 
 * Voice commands / workflow integration
 * Audio file upload/transcription
 * AI notepad / meeting mode
+
