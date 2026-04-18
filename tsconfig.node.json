@@ -5,7 +5,10 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "out",
-    "composite": true
+    "composite": true,
+    "paths": {
+      "@shared/*": ["./src/shared/*"]
+    }
   },
   "include": [
     "src/main/**/*.ts",
