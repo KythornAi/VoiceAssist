@@ -1,6 +1,6 @@
 import { app, ipcMain } from 'electron'
-import { IPC } from '@shared/ipc-contract'
-import type { AudioChunkPayload } from '@shared/ipc-contract'
+import { IPC } from '../../shared/ipc-contract'
+import type { AudioChunkPayload } from '../../shared/ipc-contract'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import log from '../logger'

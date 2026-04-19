@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
-import type { SessionState } from '@shared/types'
+import type { SessionState } from '../../shared/types'
 
 export class SessionManager extends EventEmitter {
   private state: SessionState = 'idle'

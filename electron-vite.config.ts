@@ -6,9 +6,6 @@ const shared = resolve(__dirname, 'src/shared')
 
 export default defineConfig({
     main: {
-        resolve: {
-            alias: { '@shared': shared }
-        },
         build: {
             rollupOptions: {
                 input: resolve(__dirname, 'src/main/index.ts'),
@@ -17,9 +14,6 @@ export default defineConfig({
         }
     },
     preload: {
-        resolve: {
-            alias: { '@shared': shared }
-        },
         build: {
             rollupOptions: {
                 input: { index: resolve(__dirname, 'src/preload/index.ts') }
@@ -27,7 +21,6 @@ export default defineConfig({
         }
     },
     renderer: {
-        root: resolve(__dirname, 'src/renderer'),
         plugins: [svelte()],
         resolve: {
             alias: {
@@ -35,7 +28,6 @@ export default defineConfig({
             }
         },
         build: {
-            outDir: resolve(__dirname, 'out/renderer'),
             rollupOptions: {
                 input: {
                     'control-strip': resolve(__dirname, 'src/renderer/control-strip/index.html'),

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { IPC, type WindowApi } from '@shared/ipc-contract'
-import type { SessionState } from '@shared/types'
+import { IPC, type WindowApi } from '../shared/ipc-contract'
+import type { SessionState } from '../shared/types'
 
 const api: WindowApi = {
   ping: () =>
