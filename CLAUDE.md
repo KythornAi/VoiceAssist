@@ -19,7 +19,7 @@ Spec: `~/Desktop/Claude/.omc/specs/deep-interview-voiceassist-v2.md`
 **Next step:** `gsd:discuss-phase` Phase 0 -- STT model research (user sentiment + benchmarks on
 Distil-Whisper and alternatives before committing to a model).
 
-**Target:** Mid-July 2026 (3 months from April 2026).
+**Target:** Core app working within ~2 weeks of Apr 2026. Landing page after. (Corrected S111 -- original "mid-July" was wrong.)
 
 ## Stack
 

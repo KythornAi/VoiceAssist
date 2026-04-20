@@ -10,3 +10,8 @@ resources/models/*
 !resources/models/.gitkeep
 resources/voices/*
 !resources/voices/.gitkeep
+src/_v1-reference/
+.omc/
+graphify-out/
+coverage/
+*.log

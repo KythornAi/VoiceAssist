@@ -1,0 +1,79 @@
+/* Design tokens — ported from V1 */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0B1015;
+  --bg-elevated: #111920;
+  --surface: #151D26;
+  --surface-2: #1A2332;
+  --glass: rgba(17, 25, 33, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-hover: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(37, 99, 235, 0.5);
+  --blur: 20px;
+
+  --accent: #2563EB;
+  --accent-h: #3B82F6;
+  --accent-soft: rgba(37, 99, 235, 0.15);
+  --green: #22C55E;
+  --green-soft: rgba(34, 197, 94, 0.15);
+  --orange: #F59E0B;
+  --orange-soft: rgba(245, 158, 11, 0.15);
+  --red: #EF4444;
+  --red-soft: rgba(239, 68, 68, 0.15);
+  --blue: #3B82F6;
+  --purple: #8B5CF6;
+
+  --text: #E8ECF1;
+  --text-secondary: #8899A6;
+  --text-muted: #556677;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --radius-full: 9999px;
+
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="light"] {
+  --bg: #F8FAFC;
+  --bg-elevated: #FFFFFF;
+  --surface: #F1F5F9;
+  --surface-2: #E8EDF2;
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-hover: rgba(0, 0, 0, 0.02);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(37, 99, 235, 0.4);
+
+  --text: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  background: var(--bg);
+  user-select: none;
+  line-height: 1.5;
+}
