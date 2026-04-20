@@ -4,7 +4,7 @@
     "description": "Voice dictation and read-aloud desktop app",
     "main": "out/main/index.js",
     "scripts": {
-        "dev": "electron-vite dev",
+        "dev": "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
         "build": "electron-vite build",
         "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && svelte-check --tsconfig tsconfig.web.json",
         "test": "vitest run",
@@ -94,7 +94,7 @@
         "@typescript-eslint/eslint-plugin": "^8.58.2",
         "@typescript-eslint/parser": "^8.58.2",
         "@vitest/ui": "^4.1.4",
-        "electron": "^33.2.0",
+        "electron": "^41.2.1",
         "electron-builder": "^25.1.8",
         "electron-vite": "^2.3.0",
         "eslint": "^10.2.1",
