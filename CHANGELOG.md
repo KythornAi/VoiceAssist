@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Phase 2 complete. Persistent `whisper-server` worker with `ggml-large-v3-turbo-q5_0` model. Session stop triggers transcription (server start 0.6s + transcription ~1.3s on Apple M4). Transcript delivered via `session:transcript` IPC event. Architecture: `WhisperWorker` → `WhisperSttEngine` → `SessionManager` → renderer.
 - Phase 1 complete (all 10 checks green). Ground-up TypeScript + Svelte 5 scaffold verified working end-to-end in dev mode on macOS.
 - Phase 1 Stage E: `SessionManager` + IPC handlers + `JsonStore` + chunked `AudioWorklet` capture + Vitest smoke test (`src/main/session/`, `src/main/ipc/`, `src/renderer/shared/`).
 - Phase 1 Stage D: 3 Svelte 5 window shells + `env.d.ts` (`src/renderer/`). `npm run typecheck` green (87 files).
