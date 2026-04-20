@@ -2,13 +2,15 @@ import { app, BrowserWindow } from 'electron'
 import log from './logger'
 import { createAllWindows } from './windows/window-manager'
 import { SessionManager } from './session/session-manager'
+import { WhisperSttEngine } from './stt/stt-engine'
 import { registerHandlers } from './ipc/handlers'
 
 const logger = log.scope('app')
 
 app.whenReady().then(() => {
   logger.info('App ready')
-  const session = new SessionManager()
+  const stt = new WhisperSttEngine()
+  const session = new SessionManager(stt)
   registerHandlers(session)
   createAllWindows()
 

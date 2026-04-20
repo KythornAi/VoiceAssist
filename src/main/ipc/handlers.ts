@@ -1,6 +1,6 @@
 import { app, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
-import type { AudioChunkPayload } from '../../shared/ipc-contract'
+import type { AudioChunkPayload, TranscriptResult } from '../../shared/ipc-contract'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import log from '../logger'
@@ -12,6 +12,15 @@ export function registerHandlers(session: SessionManager): void {
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC.SESSION_STATE, state)
+      }
+    }
+  })
+
+  session.on('transcript', (result: TranscriptResult) => {
+    logger.info('Transcript ready', { sessionId: result.sessionId, chars: result.text.length })
+    for (const win of Object.values(getWindows())) {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC.SESSION_TRANSCRIPT, result)
       }
     }
   })
@@ -39,7 +48,7 @@ export function registerHandlers(session: SessionManager): void {
   })
 
   ipcMain.on(IPC.AUDIO_CHUNK, (_e, payload: AudioChunkPayload) => {
-    session.receiveChunk(payload.sessionId)
+    session.receiveChunk(payload.sessionId, payload.buffer)
   })
 
   ipcMain.handle(IPC.OPEN_SETTINGS, () => showSettings())

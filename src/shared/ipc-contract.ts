@@ -6,6 +6,7 @@ export const IPC = {
   SESSION_STOP: 'session:stop',
   SESSION_CANCEL: 'session:cancel',
   SESSION_STATE: 'session:state',
+  SESSION_TRANSCRIPT: 'session:transcript',
   AUDIO_CHUNK: 'audio:chunk',
   OPEN_SETTINGS: 'open-settings',
   OPEN_HISTORY: 'open-history',
@@ -24,6 +25,11 @@ export interface SessionStopResult {
   chunks: number
 }
 
+export interface TranscriptResult {
+  sessionId: string
+  text: string
+}
+
 export interface AudioChunkPayload {
   sessionId: string
   seq: number
@@ -37,6 +43,7 @@ export interface WindowApi {
   cancelSession: (sessionId: string) => Promise<void>
   sendAudioChunk: (payload: AudioChunkPayload) => void
   onSessionState: (cb: (state: SessionState) => void) => () => void
+  onTranscript: (cb: (result: TranscriptResult) => void) => () => void
   openSettings: () => Promise<void>
   openHistory: () => Promise<void>
 }

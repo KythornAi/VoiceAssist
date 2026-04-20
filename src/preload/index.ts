@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { IPC, type WindowApi } from '../shared/ipc-contract'
+import { IPC, type WindowApi, type TranscriptResult } from '../shared/ipc-contract'
 import type { SessionState } from '../shared/types'
 
 const api: WindowApi = {
@@ -23,6 +23,12 @@ const api: WindowApi = {
     const handler = (_: IpcRendererEvent, state: SessionState) => cb(state)
     ipcRenderer.on(IPC.SESSION_STATE, handler)
     return () => ipcRenderer.removeListener(IPC.SESSION_STATE, handler)
+  },
+
+  onTranscript: (cb) => {
+    const handler = (_: IpcRendererEvent, result: TranscriptResult) => cb(result)
+    ipcRenderer.on(IPC.SESSION_TRANSCRIPT, handler)
+    return () => ipcRenderer.removeListener(IPC.SESSION_TRANSCRIPT, handler)
   },
 
   openSettings: () =>
