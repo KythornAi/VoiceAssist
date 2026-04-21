@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__obsidian-brain__get_workspace_files",
+      "mcp__obsidian-brain__view",
+      "mcp__perplexity__perplexity_search",
+      "Bash(npm run typecheck)",
+      "Bash(npm test)",
+      "Bash(npm run lint)"
+    ]
+  }
+}
