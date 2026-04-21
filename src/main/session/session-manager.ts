@@ -2,6 +2,7 @@ import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
 import type { SessionState } from '../../shared/types'
 import type { SttEngine } from '../stt/stt-engine'
+import type { TranscriptPipeline } from '../text-polish/pipeline'
 import log from '../logger'
 
 const logger = log.scope('session-manager')
@@ -12,10 +13,12 @@ export class SessionManager extends EventEmitter {
   private chunkCount = 0
   private audioChunks: Float32Array[] = []
   private readonly stt: SttEngine | null
+  private readonly pipeline: TranscriptPipeline | null
 
-  constructor(stt?: SttEngine) {
+  constructor(stt?: SttEngine, pipeline?: TranscriptPipeline) {
     super()
     this.stt = stt ?? null
+    this.pipeline = pipeline ?? null
   }
 
   getState(): SessionState {
@@ -82,8 +85,9 @@ export class SessionManager extends EventEmitter {
     try {
       if (!this.stt || chunks.length === 0) return
       await this.stt.start()
-      const text = await this.stt.transcribe(chunks)
+      const rawText = await this.stt.transcribe(chunks)
       this.stt.stop()
+      const text = this.pipeline ? this.pipeline.process([rawText]) : rawText
       this.emit('transcript', { sessionId, text })
     } catch (err) {
       logger.error('Transcription failed', err)
