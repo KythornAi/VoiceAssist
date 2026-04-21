@@ -6,6 +6,13 @@ export interface AudioChunk {
   buffer: ArrayBuffer
 }
 
+export type PolishSettings = {
+  locale: 'uk' | 'us'
+  fixSpelling: boolean
+  fixGrammar: boolean
+  removeFillerWords: boolean
+}
+
 export interface AppSettings {
   dictationHotkey: string
   autoPunctuation: boolean

@@ -1,4 +1,4 @@
-import type { SessionState } from './types'
+import type { SessionState, PolishSettings } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -10,6 +10,11 @@ export const IPC = {
   AUDIO_CHUNK: 'audio:chunk',
   OPEN_SETTINGS: 'open-settings',
   OPEN_HISTORY: 'open-history',
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_SET: 'settings:set',
+  VOCAB_GET: 'vocab:get',
+  VOCAB_SET: 'vocab:set',
+  VOCAB_DELETE: 'vocab:delete',
 } as const
 
 export interface AppPingResult {
@@ -46,4 +51,9 @@ export interface WindowApi {
   onTranscript: (cb: (result: TranscriptResult) => void) => () => void
   openSettings: () => Promise<void>
   openHistory: () => Promise<void>
+  getSettings: () => Promise<PolishSettings>
+  setSettings: (patch: Partial<PolishSettings>) => Promise<void>
+  getVocab: () => Promise<Record<string, string>>
+  setVocabEntry: (key: string, value: string) => Promise<void>
+  deleteVocabEntry: (key: string) => Promise<void>
 }

@@ -1,13 +1,19 @@
 import { app, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
 import type { AudioChunkPayload, TranscriptResult } from '../../shared/ipc-contract'
+import type { PolishSettings } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
+import { JsonStore } from '../store/json-store'
 import log from '../logger'
 
 const logger = log.scope('ipc')
 
-export function registerHandlers(session: SessionManager): void {
+export function registerHandlers(
+  session: SessionManager,
+  settingsStore: JsonStore<PolishSettings>,
+  vocabStore: JsonStore<{ entries: Record<string, string> }>,
+): void {
   session.on('state', (state) => {
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
@@ -53,4 +59,28 @@ export function registerHandlers(session: SessionManager): void {
 
   ipcMain.handle(IPC.OPEN_SETTINGS, () => showSettings())
   ipcMain.handle(IPC.OPEN_HISTORY, () => showHistory())
+
+  ipcMain.handle(IPC.SETTINGS_GET, () => settingsStore.getAll())
+
+  ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<PolishSettings>) => {
+    for (const [k, v] of Object.entries(patch)) {
+      settingsStore.set(k as keyof PolishSettings, v as PolishSettings[keyof PolishSettings])
+    }
+    logger.info('Settings updated', patch)
+  })
+
+  ipcMain.handle(IPC.VOCAB_GET, () => vocabStore.get('entries'))
+
+  ipcMain.handle(IPC.VOCAB_SET, (_e, { key, value }: { key: string; value: string }) => {
+    const current = vocabStore.get('entries')
+    vocabStore.set('entries', { ...current, [key.toLowerCase()]: value })
+    logger.info('Vocab entry set', { key, value })
+  })
+
+  ipcMain.handle(IPC.VOCAB_DELETE, (_e, { key }: { key: string }) => {
+    const current = vocabStore.get('entries')
+    const { [key.toLowerCase()]: _removed, ...rest } = current
+    vocabStore.set('entries', rest)
+    logger.info('Vocab entry deleted', { key })
+  })
 }

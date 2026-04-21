@@ -1,6 +1,299 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+  import type { PolishSettings } from '../../shared/types'
+
+  let settings: PolishSettings = {
+    locale: 'uk',
+    fixSpelling: true,
+    fixGrammar: true,
+    removeFillerWords: true,
+  }
+
+  let vocab: Record<string, string> = {}
+  let newKey = ''
+  let newValue = ''
+  let saving = false
+  let saved = false
+  let addError = ''
+
+  onMount(async () => {
+    settings = await window.api.getSettings()
+    vocab = await window.api.getVocab()
+  })
+
+  async function saveSettings() {
+    saving = true
+    await window.api.setSettings(settings)
+    saving = false
+    saved = true
+    setTimeout(() => { saved = false }, 1500)
+  }
+
+  async function addEntry() {
+    addError = ''
+    const k = newKey.trim().toLowerCase()
+    const v = newValue.trim()
+    if (!k) { addError = 'Word cannot be empty.'; return }
+    if (!v) { addError = 'Replacement cannot be empty.'; return }
+    await window.api.setVocabEntry(k, v)
+    vocab = { ...vocab, [k]: v }
+    newKey = ''
+    newValue = ''
+  }
+
+  async function deleteEntry(key: string) {
+    await window.api.deleteVocabEntry(key)
+    const { [key]: _removed, ...rest } = vocab
+    vocab = rest
+  }
 </script>
 
 <main>
-  <p>Settings</p>
+  <section>
+    <h2>Text Polish</h2>
+
+    <label class="field">
+      <span>Spelling region</span>
+      <select bind:value={settings.locale}>
+        <option value="uk">UK English (colour, behaviour)</option>
+        <option value="us">US English (color, behavior)</option>
+      </select>
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Fix spelling</strong>
+        <small>Correct common misspellings in dictated text</small>
+      </span>
+      <input type="checkbox" bind:checked={settings.fixSpelling} />
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Grammar cleanup</strong>
+        <small>Auto-capitalise, fix spacing, add missing full stops</small>
+      </span>
+      <input type="checkbox" bind:checked={settings.fixGrammar} />
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Remove filler words</strong>
+        <small>Filter out "um", "ah", "like" from dictated text</small>
+      </span>
+      <input type="checkbox" bind:checked={settings.removeFillerWords} />
+    </label>
+
+    <button on:click={saveSettings} disabled={saving}>
+      {saved ? 'Saved' : saving ? 'Saving...' : 'Save'}
+    </button>
+  </section>
+
+  <section>
+    <h2>Custom Vocabulary</h2>
+    <p class="hint">Add words Whisper gets wrong. Applied after text polish.</p>
+
+    {#if Object.keys(vocab).length > 0}
+      <table>
+        <thead>
+          <tr><th>Spoken word</th><th>Replace with</th><th></th></tr>
+        </thead>
+        <tbody>
+          {#each Object.entries(vocab) as [key, value] (key)}
+            <tr>
+              <td>{key}</td>
+              <td>{value}</td>
+              <td><button class="del" on:click={() => deleteEntry(key)}>Delete</button></td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {:else}
+      <p class="empty">No custom words yet.</p>
+    {/if}
+
+    <div class="add-row">
+      <input bind:value={newKey} placeholder="Spoken word" />
+      <input bind:value={newValue} placeholder="Replace with" />
+      <button on:click={addEntry}>Add</button>
+    </div>
+    {#if addError}<p class="error">{addError}</p>{/if}
+  </section>
 </main>
+
+<style>
+  main {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    color: var(--text, #e2e8f0);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 14px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--text, #e2e8f0);
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .field span {
+    color: var(--text-secondary, #94a3b8);
+  }
+
+  select {
+    background: var(--surface, #1e293b);
+    color: var(--text, #e2e8f0);
+    border: 1px solid var(--border, #334155);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface, #1e293b);
+    border: 1px solid var(--border, #334155);
+    border-radius: 8px;
+    cursor: pointer;
+    gap: 12px;
+  }
+
+  .toggle-row span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .toggle-row strong {
+    font-weight: 500;
+    color: var(--text, #e2e8f0);
+  }
+
+  .toggle-row small {
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+  }
+
+  .toggle-row input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--accent, #3b82f6);
+  }
+
+  button {
+    align-self: flex-start;
+    padding: 8px 20px;
+    background: var(--accent, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .hint {
+    font-size: 13px;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted, #64748b);
+    border-bottom: 1px solid var(--border, #334155);
+  }
+
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border, #1e293b);
+    color: var(--text, #e2e8f0);
+  }
+
+  button.del {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: transparent;
+    color: var(--red, #ef4444);
+    border: 1px solid var(--red, #ef4444);
+    border-radius: 4px;
+  }
+
+  button.del:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .empty {
+    font-size: 13px;
+    color: var(--text-muted, #64748b);
+    padding: 8px 0;
+  }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .add-row input {
+    flex: 1;
+    padding: 7px 10px;
+    background: var(--surface, #1e293b);
+    color: var(--text, #e2e8f0);
+    border: 1px solid var(--border, #334155);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .add-row input::placeholder {
+    color: var(--text-muted, #64748b);
+  }
+
+  .add-row button {
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .error {
+    font-size: 12px;
+    color: var(--red, #ef4444);
+    margin: 0;
+  }
+</style>

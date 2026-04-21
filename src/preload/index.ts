@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { IPC, type WindowApi, type TranscriptResult } from '../shared/ipc-contract'
-import type { SessionState } from '../shared/types'
+import type { SessionState, PolishSettings } from '../shared/types'
 
 const api: WindowApi = {
   ping: () =>
@@ -36,6 +36,21 @@ const api: WindowApi = {
 
   openHistory: () =>
     ipcRenderer.invoke(IPC.OPEN_HISTORY),
+
+  getSettings: () =>
+    ipcRenderer.invoke(IPC.SETTINGS_GET),
+
+  setSettings: (patch: Partial<PolishSettings>) =>
+    ipcRenderer.invoke(IPC.SETTINGS_SET, patch),
+
+  getVocab: () =>
+    ipcRenderer.invoke(IPC.VOCAB_GET),
+
+  setVocabEntry: (key: string, value: string) =>
+    ipcRenderer.invoke(IPC.VOCAB_SET, { key, value }),
+
+  deleteVocabEntry: (key: string) =>
+    ipcRenderer.invoke(IPC.VOCAB_DELETE, { key }),
 }
 
 contextBridge.exposeInMainWorld('api', api)
