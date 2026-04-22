@@ -8,6 +8,8 @@ import { loadTextPolisher, getDictBasePath } from './text-polish/text-polish'
 import { TranscriptPipeline } from './text-polish/pipeline'
 import { JsonStore } from './store/json-store'
 import { createSettingsStore } from './store/settings-store'
+import { HistoryStore } from './store/history-store'
+import type { HistoryItem } from '../shared/types'
 
 const logger = log.scope('app')
 
@@ -16,6 +18,9 @@ app.whenReady().then(() => {
   const stt = new WhisperSttEngine()
   const settingsStore = createSettingsStore()
   const vocabStore = new JsonStore<{ entries: Record<string, string> }>('vocabulary.json', { entries: {} })
+  const historyStore = new HistoryStore(
+    new JsonStore<{ items: HistoryItem[] }>('history.json', { items: [] }),
+  )
   const polisher = loadTextPolisher(getDictBasePath())
   const pipeline = new TranscriptPipeline(
     polisher,
@@ -23,7 +28,7 @@ app.whenReady().then(() => {
     () => settingsStore.getAll(),
   )
   const session = new SessionManager(stt, pipeline)
-  registerHandlers(session, settingsStore, vocabStore)
+  registerHandlers(session, settingsStore, vocabStore, historyStore)
   createAllWindows()
 
   app.on('activate', () => {

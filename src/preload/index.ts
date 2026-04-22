@@ -51,6 +51,12 @@ const api: WindowApi = {
 
   deleteVocabEntry: (key: string) =>
     ipcRenderer.invoke(IPC.VOCAB_DELETE, { key }),
+
+  getHistory: () =>
+    ipcRenderer.invoke(IPC.HISTORY_GET),
+
+  clearHistory: () =>
+    ipcRenderer.invoke(IPC.HISTORY_CLEAR),
 }
 
 contextBridge.exposeInMainWorld('api', api)

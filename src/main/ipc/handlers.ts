@@ -5,6 +5,7 @@ import type { PolishSettings, FormatMode } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import { JsonStore } from '../store/json-store'
+import { HistoryStore } from '../store/history-store'
 import log from '../logger'
 
 const logger = log.scope('ipc')
@@ -13,6 +14,7 @@ export function registerHandlers(
   session: SessionManager,
   settingsStore: JsonStore<PolishSettings>,
   vocabStore: JsonStore<{ entries: Record<string, string> }>,
+  historyStore: HistoryStore,
 ): void {
   session.on('state', (state) => {
     for (const win of Object.values(getWindows())) {
@@ -23,6 +25,7 @@ export function registerHandlers(
   })
 
   session.on('transcript', (result: TranscriptResult) => {
+    historyStore.add(result.text)
     logger.info('Transcript ready', { sessionId: result.sessionId, chars: result.text.length })
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
@@ -82,5 +85,12 @@ export function registerHandlers(
     const { [key.toLowerCase()]: _removed, ...rest } = current
     vocabStore.set('entries', rest)
     logger.info('Vocab entry deleted', { key })
+  })
+
+  ipcMain.handle(IPC.HISTORY_GET, () => historyStore.getAll())
+
+  ipcMain.handle(IPC.HISTORY_CLEAR, () => {
+    historyStore.clear()
+    logger.info('History cleared')
   })
 }

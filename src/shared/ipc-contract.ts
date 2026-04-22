@@ -1,4 +1,4 @@
-import type { SessionState, PolishSettings, FormatMode } from './types'
+import type { SessionState, PolishSettings, FormatMode, HistoryItem } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -15,6 +15,8 @@ export const IPC = {
   VOCAB_GET: 'vocab:get',
   VOCAB_SET: 'vocab:set',
   VOCAB_DELETE: 'vocab:delete',
+  HISTORY_GET: 'history:get',
+  HISTORY_CLEAR: 'history:clear',
 } as const
 
 export interface AppPingResult {
@@ -56,4 +58,6 @@ export interface WindowApi {
   getVocab: () => Promise<Record<string, string>>
   setVocabEntry: (key: string, value: string) => Promise<void>
   deleteVocabEntry: (key: string) => Promise<void>
+  getHistory: () => Promise<HistoryItem[]>
+  clearHistory: () => Promise<void>
 }
