@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Phase 7 complete. Clipboard auto-copy: transcript is written to the system clipboard via `clipboard.writeText()` in the main process immediately after every session stops, so it is ready to paste anywhere without extra steps. History button (◷) added to control strip alongside the existing Settings button.
+- Fix: 300ms silence pre-pad added to WAV encoding (`audio-utils.ts`) to prevent Whisper from mis-transcribing the first word of a dictation (commonly "I" → "you"/"we"/"they").
+
 - Phase 6 complete. History store wiring: `HistoryStore` persists every transcript to `history.json` (capped at 100 items, newest first). IPC channels `history:get` and `history:clear` wired end-to-end. History window replaced stub with full Svelte UI: scrollable list, per-item copy button, formatted timestamp, clear-all footer, empty state, reloads on window focus. 54 tests passing, 0 typecheck errors.
 - Phase 5 complete. Format mode picker (Note/Email/Chat/Terminal) added to control strip. Selected mode passed through IPC to `SessionManager.start()` and applied as the final stage of `TranscriptPipeline`. `FormatFormatter` applies mode-specific rules: note = passthrough, email = capitalise + trailing full stop, chat = strip trailing full stop, terminal = lowercase + strip punctuation. Transcript result now displayed below the control strip bar. 47 tests passing.
 - Phase 4 complete. Settings IPC exposes `PolishSettings` (locale, fixSpelling, fixGrammar, removeFillerWords) to renderer via `settings:get/set` channels. Vocab CRUD via `vocab:get/set/delete` channels. `TranscriptPipeline` now reads settings live via getter on each call. `settings-store.ts` wraps `JsonStore<PolishSettings>` with UK-English defaults. Settings renderer (`App.svelte`) has locale picker, 3 toggles, and vocabulary add/delete table. 30 tests passing.
