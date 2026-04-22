@@ -2,10 +2,12 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+const SILENCE_PAD_SAMPLES = 4800 // 300ms at 16 kHz — prevents Whisper first-word mis-transcription
+
 export function encodeWav(chunks: Float32Array[]): Buffer {
   const totalSamples = chunks.reduce((sum, c) => sum + c.length, 0)
-  const combined = new Float32Array(totalSamples)
-  let offset = 0
+  const combined = new Float32Array(SILENCE_PAD_SAMPLES + totalSamples)
+  let offset = SILENCE_PAD_SAMPLES // first 4800 samples stay zero (silence)
   for (const chunk of chunks) {
     combined.set(chunk, offset)
     offset += chunk.length
