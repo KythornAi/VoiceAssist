@@ -67,6 +67,7 @@
   {#if chunkCount !== null}
     <span class="chunks">Chunks: {chunkCount}</span>
   {/if}
+  <button class="icon-btn" onclick={() => window.api.openHistory()} title="History">◷</button>
   <button class="icon-btn" onclick={() => window.api.openSettings()} title="Settings">⚙</button>
 </div>
 {#if lastTranscript}

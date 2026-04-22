@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron'
+import { app, clipboard, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
 import type { AudioChunkPayload, TranscriptResult } from '../../shared/ipc-contract'
 import type { PolishSettings, FormatMode } from '../../shared/types'
@@ -26,6 +26,7 @@ export function registerHandlers(
 
   session.on('transcript', (result: TranscriptResult) => {
     historyStore.add(result.text)
+    clipboard.writeText(result.text)
     logger.info('Transcript ready', { sessionId: result.sessionId, chars: result.text.length })
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
