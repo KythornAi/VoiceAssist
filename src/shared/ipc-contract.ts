@@ -17,6 +17,7 @@ export const IPC = {
   VOCAB_DELETE: 'vocab:delete',
   HISTORY_GET: 'history:get',
   HISTORY_CLEAR: 'history:clear',
+  HOTKEY_TOGGLE: 'hotkey:toggle',
 } as const
 
 export interface AppPingResult {
@@ -60,4 +61,5 @@ export interface WindowApi {
   deleteVocabEntry: (key: string) => Promise<void>
   getHistory: () => Promise<HistoryItem[]>
   clearHistory: () => Promise<void>
+  onHotkeyToggle: (cb: () => void) => () => void
 }

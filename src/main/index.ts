@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, globalShortcut } from 'electron'
 import log from './logger'
-import { createAllWindows } from './windows/window-manager'
+import { createAllWindows, getWindows } from './windows/window-manager'
 import { SessionManager } from './session/session-manager'
 import { WhisperSttEngine } from './stt/stt-engine'
 import { registerHandlers } from './ipc/handlers'
+import { IPC } from '../shared/ipc-contract'
 import { loadTextPolisher, getDictBasePath } from './text-polish/text-polish'
 import { TranscriptPipeline } from './text-polish/pipeline'
 import { JsonStore } from './store/json-store'
@@ -31,11 +32,22 @@ app.whenReady().then(() => {
   registerHandlers(session, settingsStore, vocabStore, historyStore)
   createAllWindows()
 
+  globalShortcut.register('Control+Shift+D', () => {
+    const strip = getWindows().controlStrip
+    if (strip && !strip.isDestroyed()) {
+      strip.webContents.send(IPC.HOTKEY_TOGGLE)
+    }
+  })
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createAllWindows()
     }
   })
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {

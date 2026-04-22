@@ -57,6 +57,12 @@ const api: WindowApi = {
 
   clearHistory: () =>
     ipcRenderer.invoke(IPC.HISTORY_CLEAR),
+
+  onHotkeyToggle: (cb) => {
+    const handler = () => cb()
+    ipcRenderer.on(IPC.HOTKEY_TOGGLE, handler)
+    return () => ipcRenderer.removeListener(IPC.HOTKEY_TOGGLE, handler)
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

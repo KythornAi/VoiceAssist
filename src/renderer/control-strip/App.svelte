@@ -18,6 +18,13 @@
     })
   })
 
+  $effect(() => {
+    return window.api.onHotkeyToggle(() => {
+      if (status === 'idle') onStart()
+      else if (status === 'recording') void onStop()
+    })
+  })
+
   async function onStart() {
     try {
       const result = await window.api.startSession(formatMode)
@@ -87,6 +94,11 @@
     color: var(--text, #E8ECF1);
     font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-size: 13px;
+    -webkit-app-region: drag;
+  }
+
+  button {
+    -webkit-app-region: no-drag;
   }
 
   .status {
