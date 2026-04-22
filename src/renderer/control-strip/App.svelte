@@ -11,10 +11,15 @@
   let status = $state('idle')
   let formatMode = $state<FormatMode>('note')
   let lastTranscript = $state<string | null>(null)
+  let copied = $state(false)
+  let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
   $effect(() => {
     return window.api.onTranscript((result) => {
       lastTranscript = result.text
+      if (copiedTimer) clearTimeout(copiedTimer)
+      copied = true
+      copiedTimer = setTimeout(() => { copied = false }, 2000)
     })
   })
 
@@ -55,7 +60,12 @@
 </script>
 
 <div class="control-strip">
-  <span class="status">{status}</span>
+  <div class="status">
+    {#if status === 'recording'}
+      <span class="recording-dot"></span>
+    {/if}
+    {status}
+  </div>
   {#if status === 'idle'}
     <div class="mode-picker">
       {#each FORMAT_MODES as mode}
@@ -80,6 +90,9 @@
 {#if lastTranscript}
   <div class="transcript">{lastTranscript}</div>
 {/if}
+{#if copied}
+  <div class="copied-badge">Copied ✓</div>
+{/if}
 
 <style>
   .control-strip {
@@ -103,7 +116,36 @@
 
   .status {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--text-secondary, #8899A6);
+  }
+
+  .recording-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #EF4444;
+    flex-shrink: 0;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .copied-badge {
+    margin: 0 8px 6px;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 6px;
+    color: #22C55E;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 12px;
+    text-align: right;
   }
 
   .mode-picker {
