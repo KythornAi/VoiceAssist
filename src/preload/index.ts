@@ -1,13 +1,13 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { IPC, type WindowApi, type TranscriptResult } from '../shared/ipc-contract'
-import type { SessionState, PolishSettings } from '../shared/types'
+import type { SessionState, PolishSettings, FormatMode } from '../shared/types'
 
 const api: WindowApi = {
   ping: () =>
     ipcRenderer.invoke(IPC.APP_PING),
 
-  startSession: () =>
-    ipcRenderer.invoke(IPC.SESSION_START),
+  startSession: (formatMode: FormatMode) =>
+    ipcRenderer.invoke(IPC.SESSION_START, { formatMode }),
 
   stopSession: (sessionId) =>
     ipcRenderer.invoke(IPC.SESSION_STOP, { sessionId }),

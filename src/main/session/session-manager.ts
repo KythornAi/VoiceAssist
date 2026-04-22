@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
-import type { SessionState } from '../../shared/types'
+import type { SessionState, FormatMode } from '../../shared/types'
 import type { SttEngine } from '../stt/stt-engine'
 import type { TranscriptPipeline } from '../text-polish/pipeline'
 import log from '../logger'
@@ -12,6 +12,7 @@ export class SessionManager extends EventEmitter {
   private sessionId: string | null = null
   private chunkCount = 0
   private audioChunks: Float32Array[] = []
+  private formatMode: FormatMode = 'note'
   private readonly stt: SttEngine | null
   private readonly pipeline: TranscriptPipeline | null
 
@@ -33,13 +34,14 @@ export class SessionManager extends EventEmitter {
     return this.chunkCount
   }
 
-  start(): string {
+  start(formatMode: FormatMode = 'note'): string {
     if (this.state !== 'idle') {
       throw new Error(`Cannot start session: state is ${this.state}`)
     }
     this.sessionId = randomUUID()
     this.chunkCount = 0
     this.audioChunks = []
+    this.formatMode = formatMode
     this.transition('recording')
     return this.sessionId
   }
@@ -87,7 +89,7 @@ export class SessionManager extends EventEmitter {
       await this.stt.start()
       const rawText = await this.stt.transcribe(chunks)
       this.stt.stop()
-      const text = this.pipeline ? this.pipeline.process([rawText]) : rawText
+      const text = this.pipeline ? this.pipeline.process([rawText], this.formatMode) : rawText
       this.emit('transcript', { sessionId, text })
     } catch (err) {
       logger.error('Transcription failed', err)

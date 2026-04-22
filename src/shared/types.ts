@@ -1,5 +1,7 @@
 export type SessionState = 'idle' | 'recording' | 'processing' | 'cancelled'
 
+export type FormatMode = 'note' | 'email' | 'chat' | 'terminal'
+
 export interface AudioChunk {
   sessionId: string
   seq: number

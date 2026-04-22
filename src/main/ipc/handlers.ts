@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
 import type { AudioChunkPayload, TranscriptResult } from '../../shared/ipc-contract'
-import type { PolishSettings } from '../../shared/types'
+import type { PolishSettings, FormatMode } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import { JsonStore } from '../store/json-store'
@@ -36,9 +36,9 @@ export function registerHandlers(
     version: app.getVersion(),
   }))
 
-  ipcMain.handle(IPC.SESSION_START, () => {
-    const sessionId = session.start()
-    logger.info('Session started', { sessionId })
+  ipcMain.handle(IPC.SESSION_START, (_e, { formatMode }: { formatMode: FormatMode }) => {
+    const sessionId = session.start(formatMode)
+    logger.info('Session started', { sessionId, formatMode })
     return { sessionId }
   })
 

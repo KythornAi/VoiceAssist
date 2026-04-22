@@ -1,4 +1,4 @@
-import type { SessionState, PolishSettings } from './types'
+import type { SessionState, PolishSettings, FormatMode } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -43,7 +43,7 @@ export interface AudioChunkPayload {
 
 export interface WindowApi {
   ping: () => Promise<AppPingResult>
-  startSession: () => Promise<SessionStartResult>
+  startSession: (formatMode: FormatMode) => Promise<SessionStartResult>
   stopSession: (sessionId: string) => Promise<SessionStopResult>
   cancelSession: (sessionId: string) => Promise<void>
   sendAudioChunk: (payload: AudioChunkPayload) => void
