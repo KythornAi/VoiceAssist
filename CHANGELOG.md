@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Phase 8 complete. Global hotkey `Ctrl+Shift+D` starts/stops dictation from any app without clicking. Hotkey fires a `hotkey:toggle` IPC event to the control strip renderer which toggles `onStart()`/`onStop()` using the currently selected format mode. Shortcut unregistered cleanly on `will-quit`. Control strip is now draggable via `-webkit-app-region: drag`; all buttons retain `no-drag` so they remain clickable.
+
 - Phase 7 complete. Clipboard auto-copy: transcript is written to the system clipboard via `clipboard.writeText()` in the main process immediately after every session stops, so it is ready to paste anywhere without extra steps. History button (◷) added to control strip alongside the existing Settings button.
 - Fix: 300ms silence pre-pad added to WAV encoding (`audio-utils.ts`) to prevent Whisper from mis-transcribing the first word of a dictation (commonly "I" → "you"/"we"/"they").
 
