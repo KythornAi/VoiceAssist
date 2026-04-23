@@ -18,6 +18,7 @@ export const IPC = {
   HISTORY_GET: 'history:get',
   HISTORY_CLEAR: 'history:clear',
   HOTKEY_TOGGLE: 'hotkey:toggle',
+  SESSION_ERROR: 'session:error',
 } as const
 
 export interface AppPingResult {
@@ -36,6 +37,10 @@ export interface SessionStopResult {
 export interface TranscriptResult {
   sessionId: string
   text: string
+}
+
+export interface SessionErrorPayload {
+  message: string
 }
 
 export interface AudioChunkPayload {
@@ -62,4 +67,5 @@ export interface WindowApi {
   getHistory: () => Promise<HistoryItem[]>
   clearHistory: () => Promise<void>
   onHotkeyToggle: (cb: () => void) => () => void
+  onSessionError: (cb: (payload: SessionErrorPayload) => void) => () => void
 }

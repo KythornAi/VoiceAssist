@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { IPC, type WindowApi, type TranscriptResult } from '../shared/ipc-contract'
+import { IPC, type WindowApi, type TranscriptResult, type SessionErrorPayload } from '../shared/ipc-contract'
 import type { SessionState, PolishSettings, FormatMode } from '../shared/types'
 
 const api: WindowApi = {
@@ -62,6 +62,12 @@ const api: WindowApi = {
     const handler = () => cb()
     ipcRenderer.on(IPC.HOTKEY_TOGGLE, handler)
     return () => ipcRenderer.removeListener(IPC.HOTKEY_TOGGLE, handler)
+  },
+
+  onSessionError: (cb) => {
+    const handler = (_: IpcRendererEvent, payload: SessionErrorPayload) => cb(payload)
+    ipcRenderer.on(IPC.SESSION_ERROR, handler)
+    return () => ipcRenderer.removeListener(IPC.SESSION_ERROR, handler)
   },
 }
 

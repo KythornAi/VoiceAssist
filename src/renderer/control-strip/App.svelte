@@ -13,6 +13,14 @@
   let lastTranscript = $state<string | null>(null)
   let copied = $state(false)
   let copiedTimer: ReturnType<typeof setTimeout> | null = null
+  let errorMessage = $state<string | null>(null)
+  let errorTimer: ReturnType<typeof setTimeout> | null = null
+
+  function showError(msg: string) {
+    if (errorTimer) clearTimeout(errorTimer)
+    errorMessage = msg
+    errorTimer = setTimeout(() => { errorMessage = null }, 4000)
+  }
 
   $effect(() => {
     return window.api.onTranscript((result) => {
@@ -20,6 +28,12 @@
       if (copiedTimer) clearTimeout(copiedTimer)
       copied = true
       copiedTimer = setTimeout(() => { copied = false }, 2000)
+    })
+  })
+
+  $effect(() => {
+    return window.api.onSessionError((payload) => {
+      showError(payload.message)
     })
   })
 
@@ -38,10 +52,11 @@
       chunkCount = null
       capture = await startCapture(sessionId, {
         onChunk: (payload) => window.api.sendAudioChunk(payload),
-        onError: (msg) => { status = `error: ${msg}` },
+        onError: (msg) => { status = 'idle'; showError(msg) },
       })
     } catch (err) {
-      status = `error: ${err instanceof Error ? err.message : String(err)}`
+      status = 'idle'
+      showError(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -92,6 +107,9 @@
 {/if}
 {#if copied}
   <div class="copied-badge">Copied ✓</div>
+{/if}
+{#if errorMessage}
+  <div class="error-notice">⚠ {errorMessage}</div>
 {/if}
 
 <style>
@@ -178,6 +196,17 @@
   .chunks {
     font-size: 12px;
     color: var(--green, #22C55E);
+  }
+
+  .error-notice {
+    margin: 0 8px 6px;
+    padding: 4px 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: #EF4444;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 12px;
   }
 
   .transcript {

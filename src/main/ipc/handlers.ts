@@ -1,6 +1,6 @@
 import { app, clipboard, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
-import type { AudioChunkPayload, TranscriptResult } from '../../shared/ipc-contract'
+import type { AudioChunkPayload, TranscriptResult, SessionErrorPayload } from '../../shared/ipc-contract'
 import type { PolishSettings, FormatMode } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
@@ -20,6 +20,15 @@ export function registerHandlers(
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC.SESSION_STATE, state)
+      }
+    }
+  })
+
+  session.on('stt-error', (payload: SessionErrorPayload) => {
+    logger.error('STT error, broadcasting to renderer', payload)
+    for (const win of Object.values(getWindows())) {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC.SESSION_ERROR, payload)
       }
     }
   })

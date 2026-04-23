@@ -92,8 +92,10 @@ export class SessionManager extends EventEmitter {
       const text = this.pipeline ? this.pipeline.process([rawText], this.formatMode) : rawText
       this.emit('transcript', { sessionId, text })
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Transcription failed'
       logger.error('Transcription failed', err)
       this.stt?.stop()
+      this.emit('stt-error', { message })
     } finally {
       this.transition('idle')
     }
