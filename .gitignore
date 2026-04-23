@@ -6,6 +6,8 @@ dist/
 .DS_Store
 resources/bin/*
 !resources/bin/.gitkeep
+resources/lib/*
+!resources/lib/.gitkeep
 resources/models/*
 !resources/models/.gitkeep
 resources/voices/*

@@ -11,7 +11,7 @@
         "test:ui": "vitest --ui",
         "lint": "eslint src",
         "format": "prettier --write src",
-        "package:mac": "npm run build && electron-builder --mac",
+        "package:mac": "pkill -f VoiceAssist; hdiutil detach \"/Volumes/VoiceAssist 0.1.0-arm64\" -force 2>/dev/null; npm run build && electron-builder --mac",
         "package:win": "npm run build && electron-builder --win",
         "download:whisper": "node scripts/download-whisper.js",
         "download:whisper-small": "node scripts/download-whisper.js small.en",
@@ -58,6 +58,13 @@
                 {
                     "from": "resources/bin/",
                     "to": "bin",
+                    "filter": [
+                        "**/*"
+                    ]
+                },
+                {
+                    "from": "resources/lib/",
+                    "to": "lib",
                     "filter": [
                         "**/*"
                     ]

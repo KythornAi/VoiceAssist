@@ -7,7 +7,7 @@ import log from '../logger'
 const logger = log.scope('whisper-worker')
 const SERVER_PORT = 8765
 const HEALTH_POLL_MS = 200
-const HEALTH_TIMEOUT_MS = 15_000
+const HEALTH_TIMEOUT_MS = 45_000
 
 function getBinaryPath(): string {
   if (app.isPackaged) {

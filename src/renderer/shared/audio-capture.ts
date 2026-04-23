@@ -1,7 +1,29 @@
-import processorUrl from './audio-worklet-processor.ts?url'
 import type { AudioChunkPayload } from '@shared/ipc-contract'
 
 const SAMPLE_RATE = 16000
+
+// Inlined as a Blob URL so it works in both dev and packaged Electron
+// without any file-path resolution concerns.
+const WORKLET_CODE = `
+class RecorderProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super()
+    this._active = true
+    this.port.onmessage = (e) => {
+      if (e.data === 'stop') this._active = false
+    }
+  }
+  process(inputs) {
+    if (!this._active) return false
+    const channel = inputs[0]?.[0]
+    if (channel && channel.length > 0) {
+      this.port.postMessage(channel.slice(0))
+    }
+    return true
+  }
+}
+registerProcessor('recorder-processor', RecorderProcessor)
+`
 
 export interface AudioCaptureOptions {
   microphone?: string
@@ -42,7 +64,10 @@ export async function startCapture(
   }
 
   const audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE })
+  const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' })
+  const processorUrl = URL.createObjectURL(blob)
   await audioCtx.audioWorklet.addModule(processorUrl)
+  URL.revokeObjectURL(processorUrl)
 
   const source = audioCtx.createMediaStreamSource(stream)
   const processor = new AudioWorkletNode(audioCtx, 'recorder-processor')

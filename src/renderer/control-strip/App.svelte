@@ -50,12 +50,24 @@
       sessionId = result.sessionId
       status = 'recording'
       chunkCount = null
+      lastTranscript = null
       capture = await startCapture(sessionId, {
         onChunk: (payload) => window.api.sendAudioChunk(payload),
-        onError: (msg) => { status = 'idle'; showError(msg) },
+        onError: (msg) => {
+          const sid = sessionId
+          sessionId = null
+          capture = null
+          status = 'idle'
+          if (sid) void window.api.cancelSession(sid)
+          showError(msg)
+        },
       })
     } catch (err) {
+      const sid = sessionId
+      sessionId = null
+      capture = null
       status = 'idle'
+      if (sid) void window.api.cancelSession(sid)
       showError(err instanceof Error ? err.message : String(err))
     }
   }

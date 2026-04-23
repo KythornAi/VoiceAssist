@@ -2,7 +2,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
-const SILENCE_PAD_SAMPLES = 4800 // 300ms at 16 kHz — prevents Whisper first-word mis-transcription
+const SILENCE_PAD_SAMPLES = 16000 // 1s at 16 kHz — prevents Whisper first-word mis-transcription
 
 export function encodeWav(chunks: Float32Array[]): Buffer {
   const totalSamples = chunks.reduce((sum, c) => sum + c.length, 0)
