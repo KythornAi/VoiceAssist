@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { IPC, type WindowApi, type TranscriptResult, type SessionErrorPayload } from '../shared/ipc-contract'
-import type { SessionState, PolishSettings, FormatMode } from '../shared/types'
+import type { SessionState, PolishSettings, SttSettings, FormatMode } from '../shared/types'
 
 const api: WindowApi = {
   ping: () =>
@@ -69,6 +69,21 @@ const api: WindowApi = {
     ipcRenderer.on(IPC.SESSION_ERROR, handler)
     return () => ipcRenderer.removeListener(IPC.SESSION_ERROR, handler)
   },
+
+  getSttSettings: () =>
+    ipcRenderer.invoke(IPC.STT_SETTINGS_GET),
+
+  setSttSettings: (patch: Partial<SttSettings>) =>
+    ipcRenderer.invoke(IPC.STT_SETTINGS_SET, patch),
+
+  setOpenAIKey: (key: string) =>
+    ipcRenderer.invoke(IPC.SECRET_SET_OPENAI_KEY, key),
+
+  hasOpenAIKey: () =>
+    ipcRenderer.invoke(IPC.SECRET_HAS_OPENAI_KEY),
+
+  clearOpenAIKey: () =>
+    ipcRenderer.invoke(IPC.SECRET_CLEAR_OPENAI_KEY),
 }
 
 contextBridge.exposeInMainWorld('api', api)

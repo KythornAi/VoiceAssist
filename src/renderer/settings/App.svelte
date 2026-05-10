@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { PolishSettings } from '../../shared/types'
+  import type { PolishSettings, SttSettings } from '../../shared/types'
 
   let settings: PolishSettings = {
     locale: 'uk',
@@ -8,6 +8,13 @@
     fixGrammar: true,
     removeFillerWords: true,
   }
+
+  let sttSettings: SttSettings = { provider: 'local', model: 'gpt-4o-mini-transcribe' }
+  let hasKey = false
+  let keyInput = ''
+  let keySaving = false
+  let keySaved = false
+  let keyError = ''
 
   let vocab: Record<string, string> = {}
   let newKey = ''
@@ -18,8 +25,35 @@
 
   onMount(async () => {
     settings = await window.api.getSettings()
+    sttSettings = await window.api.getSttSettings()
+    hasKey = await window.api.hasOpenAIKey()
     vocab = await window.api.getVocab()
   })
+
+  async function setProvider(provider: 'local' | 'openai') {
+    sttSettings = { ...sttSettings, provider }
+    await window.api.setSttSettings({ provider })
+  }
+
+  async function saveKey() {
+    const k = keyInput.trim()
+    if (!k) { keyError = 'Key cannot be empty.'; return }
+    if (k.startsWith('sk-or-')) { keyError = 'That looks like an OpenRouter key, not an OpenAI key. Get yours at platform.openai.com/api-keys.'; return }
+    if (!k.startsWith('sk-')) { keyError = 'OpenAI keys start with sk-'; return }
+    keyError = ''
+    keySaving = true
+    await window.api.setOpenAIKey(k)
+    hasKey = true
+    keyInput = ''
+    keySaving = false
+    keySaved = true
+    setTimeout(() => { keySaved = false }, 1500)
+  }
+
+  async function clearKey() {
+    await window.api.clearOpenAIKey()
+    hasKey = false
+  }
 
   async function saveSettings() {
     saving = true
@@ -49,6 +83,53 @@
 </script>
 
 <main>
+  <section>
+    <h2>Speech Recognition</h2>
+
+    <div class="provider-row">
+      <button
+        class="provider-btn"
+        class:active={sttSettings.provider === 'local'}
+        on:click={() => setProvider('local')}
+      >
+        Local (Whisper)
+      </button>
+      <button
+        class="provider-btn"
+        class:active={sttSettings.provider === 'openai'}
+        on:click={() => setProvider('openai')}
+      >
+        OpenAI Cloud
+      </button>
+    </div>
+
+    {#if sttSettings.provider === 'local'}
+      <p class="hint">Using on-device Whisper. Works offline. No API key needed.</p>
+    {:else}
+      <p class="hint">Uses gpt-4o-mini-transcribe. Requires an OpenAI API key. ~$0.003/min.</p>
+
+      {#if hasKey}
+        <div class="key-row">
+          <span class="key-status">Key saved ✓</span>
+          <button class="btn-ghost" on:click={clearKey}>Clear key</button>
+        </div>
+      {:else}
+        <div class="key-warning">No API key set — cloud transcription will fail until a key is added.</div>
+        <div class="add-row">
+          <input
+            type="password"
+            bind:value={keyInput}
+            placeholder="sk-..."
+          />
+          <button on:click={saveKey} disabled={keySaving}>
+            {keySaved ? 'Saved ✓' : keySaving ? 'Saving...' : 'Save key'}
+          </button>
+        </div>
+        {#if keyError}<p class="error">{keyError}</p>{/if}
+      {/if}
+    {/if}
+  </section>
+
   <section>
     <h2>Text Polish</h2>
 
@@ -295,5 +376,64 @@
     font-size: 12px;
     color: var(--red, #ef4444);
     margin: 0;
+  }
+
+  .provider-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .provider-btn {
+    flex: 1;
+    padding: 9px 14px;
+    background: var(--surface, #1e293b);
+    color: var(--text-secondary, #94a3b8);
+    border: 1px solid var(--border, #334155);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    align-self: unset;
+  }
+
+  .provider-btn.active {
+    background: var(--accent, #3b82f6);
+    color: white;
+    border-color: var(--accent, #3b82f6);
+  }
+
+  .key-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .key-status {
+    font-size: 13px;
+    color: #4ade80;
+  }
+
+  .btn-ghost {
+    padding: 5px 12px;
+    font-size: 12px;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    border: 1px solid var(--border, #334155);
+    border-radius: 4px;
+    align-self: unset;
+  }
+
+  .btn-ghost:hover {
+    color: var(--red, #ef4444);
+    border-color: var(--red, #ef4444);
+  }
+
+  .key-warning {
+    font-size: 12px;
+    color: #fb923c;
+    padding: 8px 12px;
+    background: rgba(251, 146, 60, 0.1);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    border-radius: 6px;
   }
 </style>

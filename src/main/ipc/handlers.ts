@@ -1,10 +1,11 @@
 import { app, clipboard, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
 import type { AudioChunkPayload, TranscriptResult, SessionErrorPayload } from '../../shared/ipc-contract'
-import type { PolishSettings, FormatMode } from '../../shared/types'
+import type { PolishSettings, SttSettings, FormatMode } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import { JsonStore } from '../store/json-store'
+import { SecretStore } from '../store/secret-store'
 import { HistoryStore } from '../store/history-store'
 import log from '../logger'
 
@@ -13,6 +14,8 @@ const logger = log.scope('ipc')
 export function registerHandlers(
   session: SessionManager,
   settingsStore: JsonStore<PolishSettings>,
+  sttSettingsStore: JsonStore<SttSettings>,
+  secretStore: SecretStore,
   vocabStore: JsonStore<{ entries: Record<string, string> }>,
   historyStore: HistoryStore,
 ): void {
@@ -102,5 +105,26 @@ export function registerHandlers(
   ipcMain.handle(IPC.HISTORY_CLEAR, () => {
     historyStore.clear()
     logger.info('History cleared')
+  })
+
+  ipcMain.handle(IPC.STT_SETTINGS_GET, () => sttSettingsStore.getAll())
+
+  ipcMain.handle(IPC.STT_SETTINGS_SET, (_e, patch: Partial<SttSettings>) => {
+    for (const [k, v] of Object.entries(patch)) {
+      sttSettingsStore.set(k as keyof SttSettings, v as SttSettings[keyof SttSettings])
+    }
+    logger.info('STT settings updated', patch)
+  })
+
+  ipcMain.handle(IPC.SECRET_SET_OPENAI_KEY, (_e, key: string) => {
+    secretStore.setOpenAIKey(key)
+    logger.info('OpenAI key saved')
+  })
+
+  ipcMain.handle(IPC.SECRET_HAS_OPENAI_KEY, () => secretStore.hasOpenAIKey())
+
+  ipcMain.handle(IPC.SECRET_CLEAR_OPENAI_KEY, () => {
+    secretStore.clearOpenAIKey()
+    logger.info('OpenAI key cleared')
   })
 }

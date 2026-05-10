@@ -25,6 +25,13 @@ export interface AppSettings {
   maxHistoryItems: number
 }
 
+export type SttProvider = 'local' | 'openai'
+
+export type SttSettings = {
+  provider: SttProvider
+  model: string
+}
+
 export interface HistoryItem {
   id: string
   text: string

@@ -1,4 +1,4 @@
-import type { SessionState, PolishSettings, FormatMode, HistoryItem } from './types'
+import type { SessionState, PolishSettings, SttSettings, FormatMode, HistoryItem } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -19,6 +19,11 @@ export const IPC = {
   HISTORY_CLEAR: 'history:clear',
   HOTKEY_TOGGLE: 'hotkey:toggle',
   SESSION_ERROR: 'session:error',
+  STT_SETTINGS_GET: 'stt-settings:get',
+  STT_SETTINGS_SET: 'stt-settings:set',
+  SECRET_SET_OPENAI_KEY: 'secret:setOpenAIKey',
+  SECRET_HAS_OPENAI_KEY: 'secret:hasOpenAIKey',
+  SECRET_CLEAR_OPENAI_KEY: 'secret:clearOpenAIKey',
 } as const
 
 export interface AppPingResult {
@@ -68,4 +73,9 @@ export interface WindowApi {
   clearHistory: () => Promise<void>
   onHotkeyToggle: (cb: () => void) => () => void
   onSessionError: (cb: (payload: SessionErrorPayload) => void) => () => void
+  getSttSettings: () => Promise<SttSettings>
+  setSttSettings: (patch: Partial<SttSettings>) => Promise<void>
+  setOpenAIKey: (key: string) => Promise<void>
+  hasOpenAIKey: () => Promise<boolean>
+  clearOpenAIKey: () => Promise<void>
 }
