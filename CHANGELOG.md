@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Cloud STT opt-in via OpenAI `gpt-4o-mini-transcribe`. Settings → Speech Recognition toggles between Local (Whisper) and OpenAI Cloud. API key stored encrypted via `electron.safeStorage`. Vocabulary keys seeded as OpenAI prompt hint. Error path reuses existing SESSION_ERROR notice. ~4.6% WER vs ~5.9% local, no Metal warmup lag, ~$0.003/min.
+
 - Phase 9 complete. Visual recording state: pulsing red dot appears in the status area during recording (CSS keyframe animation, 1.2s ease-in-out). Clipboard notification: "Copied ✓" badge appears in green below the transcript for 2 seconds after each session stops, confirming the auto-copy landed.
 
 - Phase 8 complete. Global hotkey `Ctrl+Shift+D` starts/stops dictation from any app without clicking. Hotkey fires a `hotkey:toggle` IPC event to the control strip renderer which toggles `onStart()`/`onStop()` using the currently selected format mode. Shortcut unregistered cleanly on `will-quit`. Control strip is now draggable via `-webkit-app-region: drag`; all buttons retain `no-drag` so they remain clickable.
