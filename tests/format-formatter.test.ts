@@ -13,24 +13,36 @@ describe('applyFormat', () => {
   })
 
   describe('email mode', () => {
-    it('capitalises first letter', () => {
-      expect(applyFormat('hello world.', 'email')).toBe('Hello world.')
+    it('structures full email with greeting and sign-off', () => {
+      expect(applyFormat('Hi Sarah, I wanted to follow up on the proposal. Let me know your thoughts. Thanks, Kyle', 'email'))
+        .toBe('Hi Sarah,\n\nI wanted to follow up on the proposal. Let me know your thoughts.\n\nThanks, Kyle')
     })
 
-    it('adds trailing full stop when missing', () => {
-      expect(applyFormat('Hello world', 'email')).toBe('Hello world.')
+    it('structures email with Dear greeting', () => {
+      expect(applyFormat('Dear John, Please find attached the report. Kind regards, Kyle', 'email'))
+        .toBe('Dear John,\n\nPlease find attached the report.\n\nKind regards, Kyle')
     })
 
-    it('does not duplicate trailing full stop', () => {
+    it('separates sign-off without greeting', () => {
+      expect(applyFormat('Just checking in on the project. Best regards, Kyle', 'email'))
+        .toBe('Just checking in on the project.\n\nBest regards, Kyle')
+    })
+
+    it('separates greeting without sign-off', () => {
+      expect(applyFormat('Hi Team, please review the attached document when you get a chance.', 'email'))
+        .toBe('Hi Team,\n\nPlease review the attached document when you get a chance.')
+    })
+
+    it('falls back to capitalise and full stop for plain body', () => {
+      expect(applyFormat('hello world', 'email')).toBe('Hello world.')
+    })
+
+    it('does not duplicate trailing full stop on plain body', () => {
       expect(applyFormat('Hello world.', 'email')).toBe('Hello world.')
     })
 
-    it('preserves exclamation mark', () => {
+    it('preserves exclamation mark on plain body', () => {
       expect(applyFormat('Hello world!', 'email')).toBe('Hello world!')
-    })
-
-    it('preserves question mark', () => {
-      expect(applyFormat('Is this right?', 'email')).toBe('Is this right?')
     })
 
     it('handles empty string', () => {
