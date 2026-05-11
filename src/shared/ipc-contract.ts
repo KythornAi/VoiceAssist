@@ -1,4 +1,4 @@
-import type { SessionState, PolishSettings, SttSettings, FormatMode, HistoryItem } from './types'
+import type { SessionState, PolishSettings, SttSettings, FormatMode, HistoryItem, TtsState } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -24,6 +24,9 @@ export const IPC = {
   SECRET_SET_OPENAI_KEY: 'secret:setOpenAIKey',
   SECRET_HAS_OPENAI_KEY: 'secret:hasOpenAIKey',
   SECRET_CLEAR_OPENAI_KEY: 'secret:clearOpenAIKey',
+  TTS_SPEAK: 'tts:speak',
+  TTS_STOP: 'tts:stop',
+  TTS_STATE: 'tts:state',
 } as const
 
 export interface AppPingResult {
@@ -78,4 +81,7 @@ export interface WindowApi {
   setOpenAIKey: (key: string) => Promise<void>
   hasOpenAIKey: () => Promise<boolean>
   clearOpenAIKey: () => Promise<void>
+  speakText: (text: string) => Promise<void>
+  stopSpeech: () => Promise<void>
+  onTtsState: (cb: (state: TtsState) => void) => () => void
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { startCapture } from '../shared/audio-capture'
   import type { AudioCapture } from '../shared/audio-capture'
-  import type { FormatMode } from '../../shared/types'
+  import type { FormatMode, TtsState } from '../../shared/types'
 
   const FORMAT_MODES: FormatMode[] = ['note', 'email', 'chat', 'terminal']
 
@@ -15,6 +15,7 @@
   let copiedTimer: ReturnType<typeof setTimeout> | null = null
   let errorMessage = $state<string | null>(null)
   let errorTimer: ReturnType<typeof setTimeout> | null = null
+  let ttsState = $state<TtsState>('idle')
 
   function showError(msg: string) {
     if (errorTimer) clearTimeout(errorTimer)
@@ -34,6 +35,12 @@
   $effect(() => {
     return window.api.onSessionError((payload) => {
       showError(payload.message)
+    })
+  })
+
+  $effect(() => {
+    return window.api.onTtsState((state) => {
+      ttsState = state
     })
   })
 
@@ -110,6 +117,10 @@
   {/if}
   {#if chunkCount !== null}
     <span class="chunks">Chunks: {chunkCount}</span>
+  {/if}
+  {#if ttsState === 'speaking'}
+    <span class="speaking-dot"></span>
+    <button class="stop-reading-btn" onclick={() => window.api.stopSpeech()}>Stop Reading</button>
   {/if}
   <button class="icon-btn" onclick={() => window.api.openHistory()} title="History">◷</button>
   <button class="icon-btn" onclick={() => window.api.openSettings()} title="Settings">⚙</button>
@@ -208,6 +219,29 @@
   .chunks {
     font-size: 12px;
     color: var(--green, #22C55E);
+  }
+
+  .speaking-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3B82F6;
+    flex-shrink: 0;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .stop-reading-btn {
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.12);
+    color: #3B82F6;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .stop-reading-btn:hover {
+    background: rgba(59, 130, 246, 0.22);
   }
 
   .error-notice {

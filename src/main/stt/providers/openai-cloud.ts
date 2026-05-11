@@ -32,7 +32,7 @@ export class OpenAiCloudSttEngine implements SttEngine {
 
   async transcribe(chunks: Float32Array[]): Promise<string> {
     const wavBuffer = encodeWav(chunks)
-    const blob = new Blob([wavBuffer], { type: 'audio/wav' })
+    const blob = new Blob([new Uint8Array(wavBuffer)], { type: 'audio/wav' })
     const form = new FormData()
     form.append('file', blob, 'audio.wav')
     form.append('model', this.model)

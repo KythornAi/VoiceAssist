@@ -6,6 +6,8 @@ import { SttRouter } from './stt/stt-router'
 import { registerHandlers } from './ipc/handlers'
 import { IPC } from '../shared/ipc-contract'
 import { loadTextPolisher, getDictBasePath } from './text-polish/text-polish'
+import { getSelectedText } from './injection/text-injector'
+import * as ttsEngine from './tts/tts-engine'
 import { TranscriptPipeline } from './text-polish/pipeline'
 import { JsonStore } from './store/json-store'
 import { createSettingsStore, createSttSettingsStore } from './store/settings-store'
@@ -40,6 +42,16 @@ app.whenReady().then(() => {
     if (strip && !strip.isDestroyed()) {
       strip.webContents.send(IPC.HOTKEY_TOGGLE)
     }
+  })
+
+  globalShortcut.register('Control+R', async () => {
+    if (ttsEngine.isSpeaking()) {
+      ttsEngine.stop()
+      return
+    }
+    const result = await getSelectedText()
+    if (!result.ok || !result.text.trim()) return
+    void ttsEngine.speak(result.text)
   })
 
   app.on('activate', () => {

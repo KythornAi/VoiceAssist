@@ -8,6 +8,7 @@ import { JsonStore } from '../store/json-store'
 import { SecretStore } from '../store/secret-store'
 import { HistoryStore } from '../store/history-store'
 import { injectPaste } from '../injection/text-injector'
+import * as ttsEngine from '../tts/tts-engine'
 import log from '../logger'
 
 const logger = log.scope('ipc')
@@ -20,6 +21,14 @@ export function registerHandlers(
   vocabStore: JsonStore<{ entries: Record<string, string> }>,
   historyStore: HistoryStore,
 ): void {
+  ttsEngine.onStateChange((state) => {
+    for (const win of Object.values(getWindows())) {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC.TTS_STATE, state)
+      }
+    }
+  })
+
   session.on('state', (state) => {
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
@@ -52,7 +61,7 @@ export function registerHandlers(
       const r = await injectPaste()
       if (!r.ok) {
         logger.warn('Auto-paste failed', r)
-        const errorPayload: SessionErrorPayload = { sessionId: result.sessionId, message: r.message }
+        const errorPayload: SessionErrorPayload = { message: r.message }
         for (const win of Object.values(getWindows())) {
           if (win && !win.isDestroyed()) {
             win.webContents.send(IPC.SESSION_ERROR, errorPayload)
@@ -141,5 +150,15 @@ export function registerHandlers(
   ipcMain.handle(IPC.SECRET_CLEAR_OPENAI_KEY, () => {
     secretStore.clearOpenAIKey()
     logger.info('OpenAI key cleared')
+  })
+
+  ipcMain.handle(IPC.TTS_SPEAK, (_e, text: string) => {
+    void ttsEngine.speak(text)
+    logger.info('TTS speak requested', { chars: text.length })
+  })
+
+  ipcMain.handle(IPC.TTS_STOP, () => {
+    ttsEngine.stop()
+    logger.info('TTS stop requested')
   })
 }

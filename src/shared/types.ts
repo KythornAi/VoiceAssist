@@ -38,3 +38,5 @@ export interface HistoryItem {
   text: string
   timestamp: string
 }
+
+export type TtsState = 'idle' | 'speaking'
