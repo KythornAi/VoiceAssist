@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Cursor-anywhere text injection (macOS). After transcription, text is automatically pasted at the cursor in whatever app the user was typing in -- no manual Cmd+V needed. Uses `osascript` keystroke simulation; no new native dependencies. Enabled by default; toggle in Settings → Text Polish → "Paste at cursor automatically". Accessibility permission failures surface via the existing red SESSION_ERROR notice in the control strip. 59 tests passing.
+
 - Cloud STT opt-in via OpenAI `gpt-4o-mini-transcribe`. Settings → Speech Recognition toggles between Local (Whisper) and OpenAI Cloud. API key stored encrypted via `electron.safeStorage`. Vocabulary keys seeded as OpenAI prompt hint. Error path reuses existing SESSION_ERROR notice. ~4.6% WER vs ~5.9% local, no Metal warmup lag, ~$0.003/min.
 
 - Phase 9 complete. Visual recording state: pulsing red dot appears in the status area during recording (CSS keyframe animation, 1.2s ease-in-out). Clipboard notification: "Copied ✓" badge appears in green below the transcript for 2 seconds after each session stops, confirming the auto-copy landed.
