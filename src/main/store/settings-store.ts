@@ -6,6 +6,7 @@ export const POLISH_DEFAULTS: PolishSettings = {
   fixSpelling: true,
   fixGrammar: true,
   removeFillerWords: true,
+  pasteAtCursor: true,
 }
 
 export const STT_DEFAULTS: SttSettings = {

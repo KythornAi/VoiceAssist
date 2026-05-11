@@ -7,6 +7,7 @@ import { getWindows, showHistory, showSettings } from '../windows/window-manager
 import { JsonStore } from '../store/json-store'
 import { SecretStore } from '../store/secret-store'
 import { HistoryStore } from '../store/history-store'
+import { injectPaste } from '../injection/text-injector'
 import log from '../logger'
 
 const logger = log.scope('ipc')
@@ -36,13 +37,27 @@ export function registerHandlers(
     }
   })
 
-  session.on('transcript', (result: TranscriptResult) => {
+  session.on('transcript', async (result: TranscriptResult) => {
     historyStore.add(result.text)
     clipboard.writeText(result.text)
     logger.info('Transcript ready', { sessionId: result.sessionId, chars: result.text.length })
+
     for (const win of Object.values(getWindows())) {
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC.SESSION_TRANSCRIPT, result)
+      }
+    }
+
+    if (settingsStore.get('pasteAtCursor')) {
+      const r = await injectPaste()
+      if (!r.ok) {
+        logger.warn('Auto-paste failed', r)
+        const errorPayload: SessionErrorPayload = { sessionId: result.sessionId, message: r.message }
+        for (const win of Object.values(getWindows())) {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send(IPC.SESSION_ERROR, errorPayload)
+          }
+        }
       }
     }
   })

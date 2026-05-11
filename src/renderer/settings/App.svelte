@@ -7,6 +7,7 @@
     fixSpelling: true,
     fixGrammar: true,
     removeFillerWords: true,
+    pasteAtCursor: true,
   }
 
   let sttSettings: SttSettings = { provider: 'local', model: 'gpt-4o-mini-transcribe' }
@@ -163,6 +164,14 @@
         <small>Filter out "um", "ah", "like" from dictated text</small>
       </span>
       <input type="checkbox" bind:checked={settings.removeFillerWords} />
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Paste at cursor automatically</strong>
+        <small>Insert transcribed text wherever your cursor is (macOS only)</small>
+      </span>
+      <input type="checkbox" bind:checked={settings.pasteAtCursor} />
     </label>
 
     <button on:click={saveSettings} disabled={saving}>

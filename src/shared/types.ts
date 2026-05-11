@@ -13,6 +13,7 @@ export type PolishSettings = {
   fixSpelling: boolean
   fixGrammar: boolean
   removeFillerWords: boolean
+  pasteAtCursor: boolean
 }
 
 export interface AppSettings {
