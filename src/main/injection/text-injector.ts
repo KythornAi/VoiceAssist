@@ -26,30 +26,51 @@ function extractStderr(err: unknown): string {
   return err instanceof Error && 'stderr' in err ? String((err as { stderr: unknown }).stderr) : String(err)
 }
 
+// Track which external app was last frontmost so we can target it directly,
+// even when VoiceAssist has focus (e.g. after clicking the Read button).
+let _lastExternalApp: string | null = null
+
+if (process.platform === 'darwin') {
+  setInterval(() => {
+    runOsascript([
+      'tell application "System Events"',
+      'set p to first application process whose frontmost is true',
+      'if name of p is not "VoiceAssist" then',
+      'return name of p',
+      'end if',
+      'end tell',
+      'return ""',
+    ])
+      .then(name => { if (name.trim()) _lastExternalApp = name.trim() })
+      .catch(() => undefined)
+  }, 500)
+}
+
 export async function getSelectedText(): Promise<SelectionResult> {
   if (process.platform !== 'darwin') {
     return { ok: false, reason: 'unsupported-platform', message: 'Get selection only supported on macOS in this build' }
   }
-  // Iterate all visible processes for AXSelectedText -- works regardless of which app is frontmost
+  const target = _lastExternalApp
+  const keystrokeLines = target
+    ? [`tell process "${target}"`, 'keystroke "c" using command down', 'end tell']
+    : ['keystroke "c" using command down']
+
   try {
     const stdout = await runOsascript([
-      'set selectedText to ""',
-      'tell application "System Events"',
-      'set allProcs to every process whose visible is true',
-      'repeat with p in allProcs',
-      'if name of p is not "VoiceAssist" then',
+      'set oldClip to ""',
       'try',
-      'set focusedEl to value of attribute "AXFocusedUIElement" of p',
-      'set selText to value of attribute "AXSelectedText" of focusedEl',
-      'if selText is not "" then',
-      'set selectedText to selText',
-      'exit repeat',
-      'end if',
+      'set oldClip to the clipboard',
       'end try',
-      'end if',
-      'end repeat',
+      'tell application "System Events"',
+      ...keystrokeLines,
       'end tell',
-      'return selectedText',
+      'delay 0.15',
+      'set newClip to the clipboard',
+      'try',
+      'set the clipboard to oldClip',
+      'end try',
+      'if newClip is oldClip then return ""',
+      'return newClip',
     ])
     return { ok: true, text: stdout.trim() }
   } catch (err) {
