@@ -7,7 +7,7 @@ import { getWindows, showHistory, showSettings } from '../windows/window-manager
 import { JsonStore } from '../store/json-store'
 import { SecretStore } from '../store/secret-store'
 import { HistoryStore } from '../store/history-store'
-import { injectPaste } from '../injection/text-injector'
+import { injectPaste, getSelectedText } from '../injection/text-injector'
 import * as ttsEngine from '../tts/tts-engine'
 import log from '../logger'
 
@@ -160,5 +160,31 @@ export function registerHandlers(
   ipcMain.handle(IPC.TTS_STOP, () => {
     ttsEngine.stop()
     logger.info('TTS stop requested')
+  })
+
+  ipcMain.handle(IPC.TTS_READ, async () => {
+    if (ttsEngine.isSpeaking()) {
+      ttsEngine.stop()
+      return
+    }
+    const result = await getSelectedText()
+    logger.info('TTS_READ selection', { ok: result.ok, chars: result.ok ? result.text.length : 0 })
+    if (!result.ok) {
+      for (const win of Object.values(getWindows())) {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(IPC.SESSION_ERROR, { message: result.message })
+        }
+      }
+      return
+    }
+    if (!result.text.trim()) {
+      for (const win of Object.values(getWindows())) {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(IPC.SESSION_ERROR, { message: 'No text selected -- select text in any app then click Read' })
+        }
+      }
+      return
+    }
+    void ttsEngine.speak(result.text)
   })
 }

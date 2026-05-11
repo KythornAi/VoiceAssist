@@ -111,6 +111,9 @@
       {/each}
     </div>
     <button onclick={onStart}>Start</button>
+    {#if ttsState === 'idle'}
+      <button class="read-btn" onclick={() => void window.api.ttsRead()} title="Read selected text (Ctrl+R)">Read</button>
+    {/if}
   {:else if status === 'recording'}
     <span class="mode-label">{formatMode}</span>
     <button onclick={onStop}>Stop</button>
@@ -228,6 +231,20 @@
     background: #3B82F6;
     flex-shrink: 0;
     animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .read-btn {
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.12);
+    color: #3B82F6;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .read-btn:hover {
+    background: rgba(59, 130, 246, 0.22);
   }
 
   .stop-reading-btn {

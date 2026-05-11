@@ -27,6 +27,7 @@ export const IPC = {
   TTS_SPEAK: 'tts:speak',
   TTS_STOP: 'tts:stop',
   TTS_STATE: 'tts:state',
+  TTS_READ: 'tts:read',
 } as const
 
 export interface AppPingResult {
@@ -84,4 +85,5 @@ export interface WindowApi {
   speakText: (text: string) => Promise<void>
   stopSpeech: () => Promise<void>
   onTtsState: (cb: (state: TtsState) => void) => () => void
+  ttsRead: () => Promise<void>
 }

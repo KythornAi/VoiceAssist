@@ -96,6 +96,9 @@ const api: WindowApi = {
     ipcRenderer.on(IPC.TTS_STATE, handler)
     return () => ipcRenderer.removeListener(IPC.TTS_STATE, handler)
   },
+
+  ttsRead: () =>
+    ipcRenderer.invoke(IPC.TTS_READ),
 }
 
 contextBridge.exposeInMainWorld('api', api)

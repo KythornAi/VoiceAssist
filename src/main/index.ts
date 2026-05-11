@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut } from 'electron'
+import { app, BrowserWindow, globalShortcut, systemPreferences } from 'electron'
 import log from './logger'
 import { createAllWindows, getWindows } from './windows/window-manager'
 import { SessionManager } from './session/session-manager'
@@ -19,6 +19,10 @@ const logger = log.scope('app')
 
 app.whenReady().then(() => {
   logger.info('App ready')
+  if (process.platform === 'darwin') {
+    const trusted = systemPreferences.isTrustedAccessibilityClient(true)
+    logger.info('Accessibility trusted', { trusted })
+  }
   const settingsStore = createSettingsStore()
   const sttSettingsStore = createSttSettingsStore()
   const secretStore = new SecretStore()
@@ -44,15 +48,35 @@ app.whenReady().then(() => {
     }
   })
 
-  globalShortcut.register('Control+R', async () => {
+  const ttsRegistered = globalShortcut.register('Control+R', async () => {
+    logger.info('Ctrl+R fired', { speaking: ttsEngine.isSpeaking() })
     if (ttsEngine.isSpeaking()) {
       ttsEngine.stop()
       return
     }
     const result = await getSelectedText()
-    if (!result.ok || !result.text.trim()) return
+    logger.info('getSelectedText result', { ok: result.ok, chars: result.ok ? result.text.length : 0 })
+    if (!result.ok) {
+      logger.warn('TTS selection failed', result)
+      for (const win of Object.values(getWindows())) {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(IPC.SESSION_ERROR, { message: result.message })
+        }
+      }
+      return
+    }
+    if (!result.text.trim()) {
+      logger.info('Ctrl+R: no text selected')
+      for (const win of Object.values(getWindows())) {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(IPC.SESSION_ERROR, { message: 'No text selected -- select text in any app then press Ctrl+R' })
+        }
+      }
+      return
+    }
     void ttsEngine.speak(result.text)
   })
+  logger.info('Ctrl+R registered', { ttsRegistered })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
