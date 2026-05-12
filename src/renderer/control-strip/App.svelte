@@ -8,7 +8,6 @@
   let status = $state('idle')
   let formatMode = $state<FormatMode>('note')
   let audioDeviceId = $state('')
-  let lastTranscript = $state<string | null>(null)
   let copied = $state(false)
   let copiedTimer: ReturnType<typeof setTimeout> | null = null
   let errorMessage = $state<string | null>(null)
@@ -46,8 +45,7 @@
   }
 
   $effect(() => {
-    return window.api.onTranscript((result) => {
-      lastTranscript = result.text
+    return window.api.onTranscript(() => {
       if (copiedTimer) clearTimeout(copiedTimer)
       copied = true
       copiedTimer = setTimeout(() => { copied = false }, 2000)
@@ -81,7 +79,6 @@
       const result = await window.api.startSession(formatMode)
       sessionId = result.sessionId
       status = 'recording'
-      lastTranscript = null
       startTimer()
       capture = await startCapture(sessionId, {
         microphone: audioDeviceId || undefined,
@@ -150,14 +147,11 @@
     <button class="btn-start" onclick={() => void onStart()}>Start</button>
     <button class="btn-read" onclick={() => void window.api.ttsRead()} title="Read selected text (Ctrl+R)">Read</button>
     <button class="btn-icon" onclick={() => window.api.openSettings()} title="Settings">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M4.93 19.07a10 10 0 0 0 14.14 0M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   {/if}
 </div>
 
-{#if lastTranscript}
-  <div class="transcript">{lastTranscript}</div>
-{/if}
 {#if copied}
   <div class="toast toast-success">Copied</div>
 {/if}
@@ -180,7 +174,7 @@
     margin: 8px;
     background: #121317;
     border: 1px solid #2a2b30;
-    border-radius: 14px;
+    border-radius: 22px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.7);
     -webkit-app-region: drag;
     font-family: 'Inter', -apple-system, system-ui, sans-serif;
@@ -304,21 +298,6 @@
     color: #FFB800;
     font-weight: 500;
     -webkit-app-region: no-drag;
-  }
-
-  /* Transcript */
-  .transcript {
-    margin: 0 8px 8px;
-    padding: 10px 14px;
-    background: #121317;
-    border: 1px solid #2a2b30;
-    border-radius: 10px;
-    color: #cdcdcd;
-    font-family: 'Inter', -apple-system, system-ui, sans-serif;
-    font-size: 13px;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
   }
 
   /* Toasts */
