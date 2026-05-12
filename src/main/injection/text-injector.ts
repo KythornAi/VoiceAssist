@@ -46,6 +46,8 @@ if (process.platform === 'darwin') {
   }, 500)
 }
 
+export function getLastExternalApp(): string | null { return _lastExternalApp }
+
 export async function getSelectedText(): Promise<SelectionResult> {
   if (process.platform !== 'darwin') {
     return { ok: false, reason: 'unsupported-platform', message: 'Get selection only supported on macOS in this build' }

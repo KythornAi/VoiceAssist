@@ -6,7 +6,7 @@ import { SttRouter } from './stt/stt-router'
 import { registerHandlers } from './ipc/handlers'
 import { IPC } from '../shared/ipc-contract'
 import { loadTextPolisher, getDictBasePath } from './text-polish/text-polish'
-import { getSelectedText } from './injection/text-injector'
+import { getSelectedText, getLastExternalApp } from './injection/text-injector'
 import * as ttsEngine from './tts/tts-engine'
 import { TranscriptPipeline } from './text-polish/pipeline'
 import { JsonStore } from './store/json-store'
@@ -54,6 +54,8 @@ app.whenReady().then(() => {
       ttsEngine.stop()
       return
     }
+    logger.info('Ctrl+R: target app', { target: getLastExternalApp() })
+    await new Promise(resolve => setTimeout(resolve, 200))
     const result = await getSelectedText()
     logger.info('getSelectedText result', { ok: result.ok, chars: result.ok ? result.text.length : 0 })
     if (!result.ok) {
