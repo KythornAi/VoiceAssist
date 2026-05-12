@@ -14,6 +14,19 @@ export type PolishSettings = {
   fixGrammar: boolean
   removeFillerWords: boolean
   pasteAtCursor: boolean
+  formatMode: FormatMode
+  voiceFile: string
+  audioDeviceId: string
+}
+
+export interface VoiceInfo {
+  id: string
+  file: string
+  lang: string
+  voice: string
+  quality: string
+  gender: 'male' | 'female' | 'unknown'
+  label: string
 }
 
 export interface AppSettings {

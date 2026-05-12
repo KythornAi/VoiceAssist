@@ -40,8 +40,8 @@ export function stop(): void {
 
 type AfplayOutcome = 'done' | 'stopped' | 'error'
 
-async function playViaPiper(text: string): Promise<AfplayOutcome> {
-  const wav = await synthesise(text, {})
+async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOutcome> {
+  const wav = await synthesise(text, voiceFile ? { voice: voiceFile } : {})
   fs.writeFileSync(tmpWav, wav)
   return new Promise<AfplayOutcome>((resolve) => {
     activePlayback = spawn('afplay', [tmpWav])
@@ -57,14 +57,14 @@ async function playViaPiper(text: string): Promise<AfplayOutcome> {
   })
 }
 
-export async function speak(text: string): Promise<void> {
+export async function speak(text: string, voiceFile?: string): Promise<void> {
   stop()
   setState('speaking')
 
   const piper = checkPiperReady()
   if (piper.ready) {
     try {
-      const outcome = await playViaPiper(text)
+      const outcome = await playViaPiper(text, voiceFile)
       if (outcome !== 'error') {
         setState('idle')
         return

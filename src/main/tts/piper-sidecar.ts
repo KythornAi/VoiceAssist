@@ -3,18 +3,11 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { app } from 'electron'
 import log from '../logger'
+import type { VoiceInfo } from '../../shared/types'
+
+export type { VoiceInfo }
 
 const logger = log.scope('piper')
-
-export interface VoiceInfo {
-  id: string
-  file: string
-  lang: string
-  voice: string
-  quality: string
-  gender: 'male' | 'female' | 'unknown'
-  label: string
-}
 
 export interface PiperStatus {
   ready: boolean

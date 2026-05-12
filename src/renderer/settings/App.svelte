@@ -1,448 +1,689 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import type { PolishSettings, SttSettings } from '../../shared/types'
+  import type { PolishSettings, SttSettings, HistoryItem, FormatMode, VoiceInfo } from '../../shared/types'
 
-  let settings: PolishSettings = {
-    locale: 'uk',
-    fixSpelling: true,
-    fixGrammar: true,
-    removeFillerWords: true,
-    pasteAtCursor: true,
-  }
+  type Tab = 'settings' | 'history' | 'voices'
 
-  let sttSettings: SttSettings = { provider: 'local', model: 'gpt-4o-mini-transcribe' }
-  let hasKey = false
-  let keyInput = ''
-  let keySaving = false
-  let keySaved = false
-  let keyError = ''
+  let activeTab = $state<Tab>('settings')
 
-  let vocab: Record<string, string> = {}
-  let newKey = ''
-  let newValue = ''
-  let saving = false
-  let saved = false
-  let addError = ''
+  let polish = $state<PolishSettings | null>(null)
+  let stt = $state<SttSettings | null>(null)
+  let vocab = $state<Record<string, string>>({})
+  let hasOpenAIKey = $state(false)
+  let newKey = $state('')
+  let showKeyInput = $state(false)
+  let newSpoken = $state('')
+  let newReplace = $state('')
+  let vocabError = $state('')
+  let saved = $state(false)
+  let savedTimer: ReturnType<typeof setTimeout> | null = null
+  let audioDevices = $state<MediaDeviceInfo[]>([])
 
-  onMount(async () => {
-    settings = await window.api.getSettings()
-    sttSettings = await window.api.getSttSettings()
-    hasKey = await window.api.hasOpenAIKey()
-    vocab = await window.api.getVocab()
+  let history = $state<HistoryItem[]>([])
+  let historyCopied = $state<string | null>(null)
+
+  let voices = $state<VoiceInfo[]>([])
+
+  const FORMAT_MODES: FormatMode[] = ['note', 'email', 'chat', 'terminal']
+
+  $effect(() => {
+    void loadSettings()
   })
 
-  async function setProvider(provider: 'local' | 'openai') {
-    sttSettings = { ...sttSettings, provider }
-    await window.api.setSttSettings({ provider })
+  async function loadSettings() {
+    const [p, s, v, k] = await Promise.all([
+      window.api.getSettings(),
+      window.api.getSttSettings(),
+      window.api.getVocab(),
+      window.api.hasOpenAIKey(),
+    ])
+    polish = p
+    stt = s
+    vocab = v
+    hasOpenAIKey = k
+    void loadAudioDevices()
   }
 
-  async function saveKey() {
-    const k = keyInput.trim()
-    if (!k) { keyError = 'Key cannot be empty.'; return }
-    if (k.startsWith('sk-or-')) { keyError = 'That looks like an OpenRouter key, not an OpenAI key. Get yours at platform.openai.com/api-keys.'; return }
-    if (!k.startsWith('sk-')) { keyError = 'OpenAI keys start with sk-'; return }
-    keyError = ''
-    keySaving = true
-    await window.api.setOpenAIKey(k)
-    hasKey = true
-    keyInput = ''
-    keySaving = false
-    keySaved = true
-    setTimeout(() => { keySaved = false }, 1500)
+  async function loadAudioDevices() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(t => t.stop())
+    } catch { /* labels will be generic if permission denied */ }
+    const all = await navigator.mediaDevices.enumerateDevices()
+    audioDevices = all.filter(d => d.kind === 'audioinput')
   }
 
-  async function clearKey() {
-    await window.api.clearOpenAIKey()
-    hasKey = false
+  function onTabChange(tab: Tab) {
+    activeTab = tab
+    if (tab === 'history') void loadHistory()
+    if (tab === 'voices') void loadVoices()
   }
 
-  async function saveSettings() {
-    saving = true
-    await window.api.setSettings(settings)
-    saving = false
+  async function loadHistory() {
+    history = await window.api.getHistory()
+  }
+
+  async function loadVoices() {
+    voices = await window.api.listVoices()
+  }
+
+  async function onSave() {
+    if (!polish || !stt) return
+    await Promise.all([
+      window.api.setSettings(polish),
+      window.api.setSttSettings(stt),
+    ])
+    if (savedTimer) clearTimeout(savedTimer)
     saved = true
-    setTimeout(() => { saved = false }, 1500)
+    savedTimer = setTimeout(() => { saved = false }, 2000)
   }
 
-  async function addEntry() {
-    addError = ''
-    const k = newKey.trim().toLowerCase()
-    const v = newValue.trim()
-    if (!k) { addError = 'Word cannot be empty.'; return }
-    if (!v) { addError = 'Replacement cannot be empty.'; return }
-    await window.api.setVocabEntry(k, v)
-    vocab = { ...vocab, [k]: v }
+  async function onSaveKey() {
+    if (!newKey.trim()) return
+    await window.api.setOpenAIKey(newKey.trim())
+    hasOpenAIKey = true
     newKey = ''
-    newValue = ''
+    showKeyInput = false
   }
 
-  async function deleteEntry(key: string) {
-    await window.api.deleteVocabEntry(key)
-    const { [key]: _removed, ...rest } = vocab
-    vocab = rest
+  async function onClearKey() {
+    await window.api.clearOpenAIKey()
+    hasOpenAIKey = false
+  }
+
+  function onAddVocab() {
+    if (!newSpoken.trim()) { vocabError = 'Spoken word required'; return }
+    if (!newReplace.trim()) { vocabError = 'Replace with required'; return }
+    vocabError = ''
+    void window.api.setVocabEntry(newSpoken.trim(), newReplace.trim()).then(() => {
+      vocab = { ...vocab, [newSpoken.trim().toLowerCase()]: newReplace.trim() }
+      newSpoken = ''
+      newReplace = ''
+    })
+  }
+
+  function onDeleteVocab(key: string) {
+    void window.api.deleteVocabEntry(key).then(() => {
+      const { [key]: _, ...rest } = vocab
+      vocab = rest
+    })
+  }
+
+  async function onClearHistory() {
+    await window.api.clearHistory()
+    history = []
+  }
+
+  function onCopyHistory(item: HistoryItem) {
+    void navigator.clipboard.writeText(item.text).then(() => {
+      historyCopied = item.id
+      setTimeout(() => { historyCopied = null }, 1500)
+    })
+  }
+
+  function formatDate(ts: string): string {
+    const d = new Date(ts)
+    const now = new Date()
+    const isToday = d.toDateString() === now.toDateString()
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return isToday ? `${time} · Today` : `${time} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
   }
 </script>
 
 <main>
-  <section>
-    <h2>Speech Recognition</h2>
+  <header>
+    <span class="app-name">VoiceAssist</span>
+    <nav>
+      {#each (['settings', 'history', 'voices'] as Tab[]) as tab}
+        <button
+          class="tab-btn"
+          class:active={activeTab === tab}
+          onclick={() => onTabChange(tab)}
+        >{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>
+      {/each}
+    </nav>
+  </header>
 
-    <div class="provider-row">
-      <button
-        class="provider-btn"
-        class:active={sttSettings.provider === 'local'}
-        on:click={() => setProvider('local')}
-      >
-        Local (Whisper)
-      </button>
-      <button
-        class="provider-btn"
-        class:active={sttSettings.provider === 'openai'}
-        on:click={() => setProvider('openai')}
-      >
-        OpenAI Cloud
-      </button>
+  {#if activeTab === 'settings' && polish && stt}
+    <div class="tab-content">
+
+      <section>
+        <h2>Speech Recognition</h2>
+        <div class="provider-row">
+          <button class="provider-btn" class:active={stt.provider === 'local'}
+            onclick={() => { if (stt) stt = { ...stt, provider: 'local' } }}>Local (Whisper)</button>
+          <button class="provider-btn" class:active={stt.provider === 'openai'}
+            onclick={() => { if (stt) stt = { ...stt, provider: 'openai' } }}>OpenAI Cloud</button>
+        </div>
+        <p class="hint">{stt.provider === 'local'
+          ? 'Using on-device Whisper. Works offline. No API key needed.'
+          : 'Using OpenAI cloud transcription. Requires API key. ~$0.003/min.'}</p>
+        {#if stt.provider === 'openai'}
+          {#if hasOpenAIKey}
+            <div class="key-row">
+              <span class="key-status">API key saved</span>
+              <button class="btn-ghost" onclick={() => void onClearKey()}>Remove</button>
+            </div>
+          {:else if showKeyInput}
+            <div class="add-row">
+              <input type="password" bind:value={newKey} placeholder="sk-..." />
+              <button class="btn-primary" onclick={() => void onSaveKey()}>Save</button>
+            </div>
+          {:else}
+            <button class="btn-ghost" onclick={() => { showKeyInput = true }}>+ Add API key</button>
+          {/if}
+          {#if !hasOpenAIKey}
+            <p class="key-warning">OpenAI key required to use cloud transcription.</p>
+          {/if}
+        {/if}
+      </section>
+
+      <section>
+        <h2>Format Mode</h2>
+        <div class="mode-row">
+          {#each FORMAT_MODES as mode}
+            <button class="mode-chip" class:active={polish.formatMode === mode}
+              onclick={() => { if (polish) polish = { ...polish, formatMode: mode } }}
+            >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
+          {/each}
+        </div>
+        <p class="hint">Default format applied to all recordings until changed.</p>
+      </section>
+
+      <section>
+        <h2>Text Polish</h2>
+        <div class="toggle-list">
+          <label class="toggle-row">
+            <div><strong>Fix spelling</strong><small>Correct common misspellings in dictated text</small></div>
+            <input type="checkbox" checked={polish.fixSpelling}
+              onchange={(e) => { if (polish) polish = { ...polish, fixSpelling: (e.target as HTMLInputElement).checked } }} />
+          </label>
+          <label class="toggle-row">
+            <div><strong>Grammar cleanup</strong><small>Auto-capitalise, fix spacing, add missing full stops</small></div>
+            <input type="checkbox" checked={polish.fixGrammar}
+              onchange={(e) => { if (polish) polish = { ...polish, fixGrammar: (e.target as HTMLInputElement).checked } }} />
+          </label>
+          <label class="toggle-row">
+            <div><strong>Remove filler words</strong><small>Filter out "um", "ah", "like" from dictated text</small></div>
+            <input type="checkbox" checked={polish.removeFillerWords}
+              onchange={(e) => { if (polish) polish = { ...polish, removeFillerWords: (e.target as HTMLInputElement).checked } }} />
+          </label>
+          <label class="toggle-row">
+            <div><strong>Paste at cursor automatically</strong><small>Insert transcribed text wherever your cursor is (macOS only)</small></div>
+            <input type="checkbox" checked={polish.pasteAtCursor}
+              onchange={(e) => { if (polish) polish = { ...polish, pasteAtCursor: (e.target as HTMLInputElement).checked } }} />
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Microphone</h2>
+        {#if audioDevices.length === 0}
+          <p class="hint">No audio input devices found.</p>
+        {:else}
+          <div class="device-list">
+            <label class="device-row">
+              <input type="radio" name="device" value=""
+                checked={!polish.audioDeviceId}
+                onchange={() => { if (polish) polish = { ...polish, audioDeviceId: '' } }} />
+              <span>System Default</span>
+            </label>
+            {#each audioDevices as device}
+              <label class="device-row">
+                <input type="radio" name="device" value={device.deviceId}
+                  checked={polish.audioDeviceId === device.deviceId}
+                  onchange={() => { if (polish) polish = { ...polish, audioDeviceId: device.deviceId } }} />
+                <span>{device.label || `Microphone (${device.deviceId.slice(0, 8)}…)`}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </section>
+
+      <section>
+        <h2>Custom Vocabulary</h2>
+        <p class="hint">Add words Whisper gets wrong. Applied after text polish.</p>
+        {#if Object.keys(vocab).length > 0}
+          <table>
+            <thead><tr><th>Spoken word</th><th>Replace with</th><th></th></tr></thead>
+            <tbody>
+              {#each Object.entries(vocab) as [key, val]}
+                <tr>
+                  <td>"{key}"</td>
+                  <td>{val}</td>
+                  <td><button class="del" onclick={() => onDeleteVocab(key)}>Delete</button></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {:else}
+          <p class="empty">No custom words yet.</p>
+        {/if}
+        <div class="add-row">
+          <input bind:value={newSpoken} placeholder="Spoken word" />
+          <input bind:value={newReplace} placeholder="Replace with" />
+          <button class="btn-primary" onclick={onAddVocab}>Add</button>
+        </div>
+        {#if vocabError}<p class="error">{vocabError}</p>{/if}
+      </section>
+
+      <div class="save-bar">
+        <button class="btn-save" onclick={() => void onSave()}>{saved ? 'Saved!' : 'Save Changes'}</button>
+      </div>
     </div>
 
-    {#if sttSettings.provider === 'local'}
-      <p class="hint">Using on-device Whisper. Works offline. No API key needed.</p>
-    {:else}
-      <p class="hint">Uses gpt-4o-mini-transcribe. Requires an OpenAI API key. ~$0.003/min.</p>
-
-      {#if hasKey}
-        <div class="key-row">
-          <span class="key-status">Key saved ✓</span>
-          <button class="btn-ghost" on:click={clearKey}>Clear key</button>
+  {:else if activeTab === 'history'}
+    <div class="tab-content">
+      <div class="history-header">
+        <span class="history-count">{history.length} item{history.length !== 1 ? 's' : ''}</span>
+        {#if history.length > 0}
+          <button class="btn-ghost-red" onclick={() => void onClearHistory()}>Clear all</button>
+        {/if}
+      </div>
+      {#if history.length === 0}
+        <div class="empty-state">
+          <span class="empty-icon">◷</span>
+          <p>No recordings yet.<br>Transcripts will appear here.</p>
         </div>
       {:else}
-        <div class="key-warning">No API key set — cloud transcription will fail until a key is added.</div>
-        <div class="add-row">
-          <input
-            type="password"
-            bind:value={keyInput}
-            placeholder="sk-..."
-          />
-          <button on:click={saveKey} disabled={keySaving}>
-            {keySaved ? 'Saved ✓' : keySaving ? 'Saving...' : 'Save key'}
-          </button>
-        </div>
-        {#if keyError}<p class="error">{keyError}</p>{/if}
-      {/if}
-    {/if}
-  </section>
-
-  <section>
-    <h2>Text Polish</h2>
-
-    <label class="field">
-      <span>Spelling region</span>
-      <select bind:value={settings.locale}>
-        <option value="uk">UK English (colour, behaviour)</option>
-        <option value="us">US English (color, behavior)</option>
-      </select>
-    </label>
-
-    <label class="toggle-row">
-      <span>
-        <strong>Fix spelling</strong>
-        <small>Correct common misspellings in dictated text</small>
-      </span>
-      <input type="checkbox" bind:checked={settings.fixSpelling} />
-    </label>
-
-    <label class="toggle-row">
-      <span>
-        <strong>Grammar cleanup</strong>
-        <small>Auto-capitalise, fix spacing, add missing full stops</small>
-      </span>
-      <input type="checkbox" bind:checked={settings.fixGrammar} />
-    </label>
-
-    <label class="toggle-row">
-      <span>
-        <strong>Remove filler words</strong>
-        <small>Filter out "um", "ah", "like" from dictated text</small>
-      </span>
-      <input type="checkbox" bind:checked={settings.removeFillerWords} />
-    </label>
-
-    <label class="toggle-row">
-      <span>
-        <strong>Paste at cursor automatically</strong>
-        <small>Insert transcribed text wherever your cursor is (macOS only)</small>
-      </span>
-      <input type="checkbox" bind:checked={settings.pasteAtCursor} />
-    </label>
-
-    <button on:click={saveSettings} disabled={saving}>
-      {saved ? 'Saved' : saving ? 'Saving...' : 'Save'}
-    </button>
-  </section>
-
-  <section>
-    <h2>Custom Vocabulary</h2>
-    <p class="hint">Add words Whisper gets wrong. Applied after text polish.</p>
-
-    {#if Object.keys(vocab).length > 0}
-      <table>
-        <thead>
-          <tr><th>Spoken word</th><th>Replace with</th><th></th></tr>
-        </thead>
-        <tbody>
-          {#each Object.entries(vocab) as [key, value] (key)}
-            <tr>
-              <td>{key}</td>
-              <td>{value}</td>
-              <td><button class="del" on:click={() => deleteEntry(key)}>Delete</button></td>
-            </tr>
+        <div class="history-list">
+          {#each history as item (item.id)}
+            <div class="history-item">
+              <div class="history-meta">
+                <span class="history-date">{formatDate(item.timestamp)}</span>
+                <button class="copy-btn" onclick={() => onCopyHistory(item)} title="Copy">
+                  {historyCopied === item.id ? '✓' : '⎘'}
+                </button>
+              </div>
+              <p class="history-text">"{item.text}"</p>
+            </div>
           {/each}
-        </tbody>
-      </table>
-    {:else}
-      <p class="empty">No custom words yet.</p>
-    {/if}
-
-    <div class="add-row">
-      <input bind:value={newKey} placeholder="Spoken word" />
-      <input bind:value={newValue} placeholder="Replace with" />
-      <button on:click={addEntry}>Add</button>
+        </div>
+      {/if}
     </div>
-    {#if addError}<p class="error">{addError}</p>{/if}
-  </section>
+
+  {:else if activeTab === 'voices'}
+    <div class="tab-content">
+      {#if voices.length === 0}
+        <div class="empty-state">
+          <span class="empty-icon">🎙</span>
+          <p>No Piper voices installed.<br>Run <code>npm run download:piper</code> to install.</p>
+        </div>
+      {:else}
+        <p class="hint">Select the voice used when reading selected text aloud.</p>
+        <div class="voice-list">
+          {#each voices as voice}
+            <label class="voice-row" class:active={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}>
+              <input type="radio" name="voice" value={voice.file}
+                checked={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}
+                onchange={() => { if (polish) polish = { ...polish, voiceFile: voice.file } }} />
+              <div class="voice-info">
+                <span class="voice-label">{voice.label}</span>
+                <span class="voice-meta">{voice.quality} quality · {voice.lang}</span>
+              </div>
+            </label>
+          {/each}
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick={() => void onSave()}>{saved ? 'Saved!' : 'Save Changes'}</button>
+        </div>
+      {/if}
+    </div>
+  {/if}
 </main>
 
 <style>
+  :global(body) { margin: 0; padding: 0; background: #07080a; }
+
   main {
-    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    color: var(--text, #e2e8f0);
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    min-height: 100vh;
+    background: #07080a;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: "calt", "kern";
     font-size: 14px;
+    color: #cdcdcd;
   }
 
-  h2 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 16px;
-    color: var(--text, #e2e8f0);
-  }
-
-  section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .field {
+  header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    padding: 14px 20px 0;
+    border-bottom: 1px solid #1e1f22;
+    flex-shrink: 0;
   }
 
-  .field span {
-    color: var(--text-secondary, #94a3b8);
-  }
+  .app-name { font-size: 15px; font-weight: 600; color: #f4f4f6; letter-spacing: -0.01em; }
 
-  select {
-    background: var(--surface, #1e293b);
-    color: var(--text, #e2e8f0);
-    border: 1px solid var(--border, #334155);
-    border-radius: 6px;
-    padding: 6px 10px;
+  nav { display: flex; }
+
+  .tab-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6a6b6c;
     font-size: 13px;
+    font-family: inherit;
+    font-weight: 400;
+    cursor: pointer;
+    transition: color 0.15s;
+    margin-bottom: -1px;
   }
+  .tab-btn:hover { color: #cdcdcd; }
+  .tab-btn.active { color: #FFB800; border-bottom-color: #FFB800; font-weight: 500; }
+
+  .tab-content {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  section { display: flex; flex-direction: column; gap: 10px; }
+
+  h2 {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6a6b6c;
+    margin: 0 0 4px;
+  }
+
+  .provider-row { display: flex; gap: 6px; }
+
+  .provider-btn {
+    flex: 1;
+    padding: 9px 14px;
+    background: #0d0e12;
+    color: #9c9c9d;
+    border: 1px solid #242728;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 400;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .provider-btn:hover:not(.active) { color: #cdcdcd; border-color: rgba(255,255,255,0.12); }
+  .provider-btn.active { background: #FFB800; color: #000; border-color: #FFB800; font-weight: 600; }
+
+  .mode-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .mode-chip {
+    padding: 5px 14px;
+    border-radius: 9999px;
+    border: 1px solid #2a2b30;
+    background: transparent;
+    color: #9c9c9d;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-chip:hover { color: #cdcdcd; border-color: rgba(255,255,255,0.16); }
+  .mode-chip.active { border-color: #FFB800; color: #FFB800; font-weight: 500; }
+
+  .toggle-list { display: flex; flex-direction: column; gap: 2px; }
 
   .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--surface, #1e293b);
-    border: 1px solid var(--border, #334155);
+    padding: 11px 14px;
+    background: #0d0e12;
+    border: 1px solid #1e1f22;
     border-radius: 8px;
     cursor: pointer;
     gap: 12px;
+    transition: border-color 0.15s;
   }
+  .toggle-row:hover { border-color: rgba(255,255,255,0.1); }
+  .toggle-row div { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-row strong { font-size: 13px; font-weight: 500; color: #f4f4f6; }
+  .toggle-row small { font-size: 12px; color: #6a6b6c; }
+  .toggle-row input[type='checkbox'] { width: 16px; height: 16px; flex-shrink: 0; accent-color: #FFB800; cursor: pointer; }
 
-  .toggle-row span {
+  .device-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .device-row {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .toggle-row strong {
-    font-weight: 500;
-    color: var(--text, #e2e8f0);
-  }
-
-  .toggle-row small {
-    font-size: 12px;
-    color: var(--text-secondary, #94a3b8);
-  }
-
-  .toggle-row input[type='checkbox'] {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    accent-color: var(--accent, #3b82f6);
-  }
-
-  button {
-    align-self: flex-start;
-    padding: 8px 20px;
-    background: var(--accent, #3b82f6);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-
-  .hint {
-    font-size: 13px;
-    color: var(--text-secondary, #94a3b8);
-    margin: 0;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  th {
-    text-align: left;
-    padding: 8px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-muted, #64748b);
-    border-bottom: 1px solid var(--border, #334155);
-  }
-
-  td {
-    padding: 9px 10px;
-    border-bottom: 1px solid var(--border, #1e293b);
-    color: var(--text, #e2e8f0);
-  }
-
-  button.del {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: transparent;
-    color: var(--red, #ef4444);
-    border: 1px solid var(--red, #ef4444);
-    border-radius: 4px;
-  }
-
-  button.del:hover {
-    background: rgba(239, 68, 68, 0.1);
-  }
-
-  .empty {
-    font-size: 13px;
-    color: var(--text-muted, #64748b);
-    padding: 8px 0;
-  }
-
-  .add-row {
-    display: flex;
-    gap: 8px;
     align-items: center;
-    margin-top: 4px;
-  }
-
-  .add-row input {
-    flex: 1;
-    padding: 7px 10px;
-    background: var(--surface, #1e293b);
-    color: var(--text, #e2e8f0);
-    border: 1px solid var(--border, #334155);
-    border-radius: 6px;
-    font-size: 13px;
-  }
-
-  .add-row input::placeholder {
-    color: var(--text-muted, #64748b);
-  }
-
-  .add-row button {
-    flex-shrink: 0;
-    margin: 0;
-  }
-
-  .error {
-    font-size: 12px;
-    color: var(--red, #ef4444);
-    margin: 0;
-  }
-
-  .provider-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .provider-btn {
-    flex: 1;
-    padding: 9px 14px;
-    background: var(--surface, #1e293b);
-    color: var(--text-secondary, #94a3b8);
-    border: 1px solid var(--border, #334155);
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #0d0e12;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
     cursor: pointer;
-    align-self: unset;
+    font-size: 13px;
+    color: #cdcdcd;
+    transition: border-color 0.15s;
   }
-
-  .provider-btn.active {
-    background: var(--accent, #3b82f6);
-    color: white;
-    border-color: var(--accent, #3b82f6);
-  }
+  .device-row:hover { border-color: rgba(255,255,255,0.1); }
+  .device-row input[type='radio'] { accent-color: #FFB800; flex-shrink: 0; }
 
   .key-row {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding: 10px 14px;
+    background: #0d0e12;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
+  }
+  .key-status { flex: 1; font-size: 13px; color: #59d499; font-weight: 500; }
+
+  .key-warning {
+    font-size: 12px;
+    color: #ffc533;
+    padding: 8px 12px;
+    background: rgba(255,197,51,0.08);
+    border: 1px solid rgba(255,197,51,0.2);
+    border-radius: 8px;
+    margin: 0;
+    line-height: 1.5;
   }
 
-  .key-status {
-    font-size: 13px;
-    color: #4ade80;
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #434345;
+    border-bottom: 1px solid #1e1f22;
   }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #cdcdcd; font-size: 13px; }
+
+  .empty { font-size: 13px; color: #434345; padding: 4px 0; margin: 0; }
+
+  .add-row { display: flex; gap: 8px; align-items: center; }
+
+  .add-row input {
+    flex: 1;
+    padding: 7px 10px;
+    background: #101111;
+    color: #f4f4f6;
+    border: 1px solid #242728;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .add-row input:focus { border-color: rgba(255,184,0,0.4); }
+  .add-row input::placeholder { color: #434345; }
+
+  .btn-primary {
+    padding: 7px 16px;
+    background: #FFB800;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: #FFC933; }
 
   .btn-ghost {
     padding: 5px 12px;
     font-size: 12px;
+    font-family: inherit;
     background: transparent;
-    color: var(--text-secondary, #94a3b8);
-    border: 1px solid var(--border, #334155);
-    border-radius: 4px;
-    align-self: unset;
-  }
-
-  .btn-ghost:hover {
-    color: var(--red, #ef4444);
-    border-color: var(--red, #ef4444);
-  }
-
-  .key-warning {
-    font-size: 12px;
-    color: #fb923c;
-    padding: 8px 12px;
-    background: rgba(251, 146, 60, 0.1);
-    border: 1px solid rgba(251, 146, 60, 0.3);
+    color: #9c9c9d;
+    border: 1px solid #242728;
     border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s;
   }
+  .btn-ghost:hover { color: #f4f4f6; border-color: rgba(255,255,255,0.16); }
+
+  .btn-ghost-red {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    background: transparent;
+    color: #ff6161;
+    border: 1px solid rgba(255,97,97,0.35);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-ghost-red:hover { background: rgba(255,97,97,0.08); }
+
+  .del {
+    padding: 3px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    background: transparent;
+    color: #ff6161;
+    border: 1px solid rgba(255,97,97,0.35);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .del:hover { background: rgba(255,97,97,0.1); }
+
+  .hint { font-size: 12px; color: #6a6b6c; margin: 0; line-height: 1.5; }
+  .error { font-size: 12px; color: #ff6161; margin: 0; }
+
+  .save-bar { display: flex; justify-content: flex-end; padding-top: 8px; }
+
+  .btn-save {
+    padding: 9px 28px;
+    background: #FFB800;
+    color: #000;
+    border: none;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-save:hover { background: #FFC933; transform: scale(1.02); }
+  .btn-save:active { transform: scale(0.98); }
+
+  .history-header { display: flex; align-items: center; justify-content: space-between; }
+  .history-count { font-size: 12px; color: #434345; }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .history-item {
+    padding: 12px 14px;
+    background: #0d0e12;
+    border: 1px solid #1e1f22;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.15s;
+  }
+  .history-item:hover { border-color: rgba(255,255,255,0.1); }
+
+  .history-meta { display: flex; align-items: center; justify-content: space-between; }
+  .history-date { font-size: 11px; color: #434345; letter-spacing: 0.02em; }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #FFB800;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s;
+  }
+  .copy-btn:hover { opacity: 0.7; }
+
+  .history-text {
+    font-size: 13px;
+    color: #9c9c9d;
+    margin: 0;
+    line-height: 1.6;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 200px;
+    color: #434345;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .empty-icon { font-size: 32px; opacity: 0.4; }
+
+  .voice-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .voice-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #0d0e12;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .voice-row:hover { border-color: rgba(255,255,255,0.1); }
+  .voice-row.active { border-color: rgba(255,184,0,0.4); }
+  .voice-row input[type='radio'] { accent-color: #FFB800; flex-shrink: 0; }
+
+  .voice-info { display: flex; flex-direction: column; gap: 2px; }
+  .voice-label { font-size: 13px; color: #f4f4f6; font-weight: 500; }
+  .voice-meta { font-size: 11px; color: #6a6b6c; }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: #1e1f22;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #FFB800;
+  }
+
+  :global(::-webkit-scrollbar) { width: 4px; }
+  :global(::-webkit-scrollbar-track) { background: transparent; }
+  :global(::-webkit-scrollbar-thumb) { background: #2a2b30; border-radius: 9999px; }
 </style>

@@ -99,6 +99,9 @@ const api: WindowApi = {
 
   ttsRead: () =>
     ipcRenderer.invoke(IPC.TTS_READ),
+
+  listVoices: () =>
+    ipcRenderer.invoke(IPC.VOICES_LIST),
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -73,26 +73,35 @@
 </div>
 
 <style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    background: #07080a;
+  }
+
   .layout {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "calt", "kern", "liga", "ss03";
     font-size: 14px;
-    color: var(--text, #e2e8f0);
-    background: var(--bg, #0f172a);
+    color: #cdcdcd;
+    background: #07080a;
   }
 
   header {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--border, #1e293b);
+    padding: 16px 20px 13px;
+    border-bottom: 1px solid #242728;
     flex-shrink: 0;
   }
 
   h1 {
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text, #e2e8f0);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6a6b6c;
     margin: 0;
   }
 
@@ -102,30 +111,43 @@
     padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .list::-webkit-scrollbar-thumb {
+    background: #242728;
+    border-radius: 9999px;
   }
 
   .item {
-    background: var(--surface, #1e293b);
-    border: 1px solid var(--border, #334155);
-    border-radius: 8px;
+    background: #0d0d0d;
+    border: 1px solid #242728;
+    border-radius: 10px;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 9px;
     transition: border-color 0.15s;
   }
 
   .item:hover {
-    border-color: var(--accent, #3b82f6);
+    border-color: rgba(255,255,255,0.12);
   }
 
   .item-text {
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
     margin: 0;
-    color: var(--text, #e2e8f0);
+    color: #f4f4f6;
   }
 
   .item-footer {
@@ -136,22 +158,27 @@
 
   .item-date {
     font-size: 11px;
-    color: var(--text-muted, #64748b);
+    color: #434345;
+    letter-spacing: 0.02em;
   }
 
   .btn-copy {
-    padding: 4px 12px;
+    padding: 3px 10px;
     font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
     background: transparent;
-    color: var(--accent, #3b82f6);
-    border: 1px solid var(--accent, #3b82f6);
-    border-radius: 4px;
+    color: #9c9c9d;
+    border: 1px solid #242728;
+    border-radius: 5px;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
 
   .btn-copy:hover {
-    background: rgba(59, 130, 246, 0.1);
+    color: #f4f4f6;
+    border-color: rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.05);
   }
 
   .empty {
@@ -160,21 +187,23 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    color: var(--text-muted, #64748b);
+    gap: 10px;
+    color: #434345;
     text-align: center;
     padding: 40px;
     min-height: 200px;
+    font-size: 13px;
+    line-height: 1.6;
   }
 
   .icon {
-    font-size: 40px;
-    opacity: 0.5;
+    font-size: 32px;
+    opacity: 0.4;
   }
 
   footer {
-    padding: 12px 16px;
-    border-top: 1px solid var(--border, #1e293b);
+    padding: 11px 16px;
+    border-top: 1px solid #242728;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -183,26 +212,27 @@
 
   .count {
     font-size: 12px;
-    color: var(--text-muted, #64748b);
+    color: #434345;
   }
 
   .btn-clear {
-    padding: 6px 14px;
+    padding: 5px 12px;
     font-size: 12px;
+    font-family: inherit;
     background: transparent;
-    color: var(--red, #ef4444);
-    border: 1px solid var(--red, #ef4444);
-    border-radius: 5px;
+    color: #ff6161;
+    border: 1px solid rgba(255,97,97,0.35);
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s;
   }
 
   .btn-clear:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(255,97,97,0.08);
   }
 
   .btn-clear:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     cursor: default;
   }
 </style>

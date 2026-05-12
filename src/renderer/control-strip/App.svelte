@@ -3,24 +3,46 @@
   import type { AudioCapture } from '../shared/audio-capture'
   import type { FormatMode, TtsState } from '../../shared/types'
 
-  const FORMAT_MODES: FormatMode[] = ['note', 'email', 'chat', 'terminal']
-
   let sessionId = $state<string | null>(null)
   let capture = $state<AudioCapture | null>(null)
-  let chunkCount = $state<number | null>(null)
   let status = $state('idle')
   let formatMode = $state<FormatMode>('note')
+  let audioDeviceId = $state('')
   let lastTranscript = $state<string | null>(null)
   let copied = $state(false)
   let copiedTimer: ReturnType<typeof setTimeout> | null = null
   let errorMessage = $state<string | null>(null)
   let errorTimer: ReturnType<typeof setTimeout> | null = null
   let ttsState = $state<TtsState>('idle')
+  let recordingSeconds = $state(0)
+  let timerInterval: ReturnType<typeof setInterval> | null = null
+
+  $effect(() => {
+    void window.api.getSettings().then(s => {
+      formatMode = s.formatMode ?? 'note'
+      audioDeviceId = s.audioDeviceId ?? ''
+    })
+  })
 
   function showError(msg: string) {
     if (errorTimer) clearTimeout(errorTimer)
     errorMessage = msg
     errorTimer = setTimeout(() => { errorMessage = null }, 4000)
+  }
+
+  function startTimer() {
+    recordingSeconds = 0
+    timerInterval = setInterval(() => { recordingSeconds++ }, 1000)
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
+  }
+
+  function formatTime(s: number): string {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
   }
 
   $effect(() => {
@@ -46,25 +68,30 @@
 
   $effect(() => {
     return window.api.onHotkeyToggle(() => {
-      if (status === 'idle') onStart()
-      else if (status === 'recording') void onStop()
+      if (status === 'idle') void onStart()
+      else if (status === 'recording') onStop()
     })
   })
 
   async function onStart() {
+    const s = await window.api.getSettings()
+    formatMode = s.formatMode ?? 'note'
+    audioDeviceId = s.audioDeviceId ?? ''
     try {
       const result = await window.api.startSession(formatMode)
       sessionId = result.sessionId
       status = 'recording'
-      chunkCount = null
       lastTranscript = null
+      startTimer()
       capture = await startCapture(sessionId, {
+        microphone: audioDeviceId || undefined,
         onChunk: (payload) => window.api.sendAudioChunk(payload),
         onError: (msg) => {
           const sid = sessionId
           sessionId = null
           capture = null
           status = 'idle'
+          stopTimer()
           if (sid) void window.api.cancelSession(sid)
           showError(msg)
         },
@@ -74,215 +101,246 @@
       sessionId = null
       capture = null
       status = 'idle'
+      stopTimer()
       if (sid) void window.api.cancelSession(sid)
       showError(err instanceof Error ? err.message : String(err))
     }
   }
 
-  async function onStop() {
+  async function onStopRecording() {
     if (!sessionId || !capture) return
+    stopTimer()
     try {
       await capture.stop()
-      const result = await window.api.stopSession(sessionId)
-      chunkCount = result.chunks
+      await window.api.stopSession(sessionId)
     } finally {
       sessionId = null
       capture = null
       status = 'idle'
     }
   }
+
+  function onStop() {
+    if (ttsState === 'speaking') {
+      void window.api.stopSpeech()
+      return
+    }
+    if (status === 'recording') void onStopRecording()
+  }
 </script>
 
-<div class="control-strip">
-  <div class="status">
-    {#if status === 'recording'}
-      <span class="recording-dot"></span>
-    {/if}
-    {status}
-  </div>
-  {#if status === 'idle'}
-    <div class="mode-picker">
-      {#each FORMAT_MODES as mode}
-        <button
-          class="mode-btn"
-          class:active={formatMode === mode}
-          onclick={() => { formatMode = mode }}
-        >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
-      {/each}
+<div class="pill">
+  {#if status === 'recording'}
+    <div class="waveform">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
     </div>
-    <button onclick={onStart}>Start</button>
-    {#if ttsState === 'idle'}
-      <button class="read-btn" onclick={() => void window.api.ttsRead()} title="Read selected text (Ctrl+R)">Read</button>
-    {/if}
-  {:else if status === 'recording'}
-    <span class="mode-label">{formatMode}</span>
-    <button onclick={onStop}>Stop</button>
-  {/if}
-  {#if chunkCount !== null}
-    <span class="chunks">Chunks: {chunkCount}</span>
-  {/if}
-  {#if ttsState === 'speaking'}
+    <span class="timer">{formatTime(recordingSeconds)}</span>
+    <button class="btn-stop" onclick={onStop}>Stop</button>
+  {:else if ttsState === 'speaking'}
     <span class="speaking-dot"></span>
-    <button class="stop-reading-btn" onclick={() => window.api.stopSpeech()}>Stop Reading</button>
+    <span class="reading-label">Reading</span>
+    <button class="btn-stop" onclick={onStop}>Stop</button>
+  {:else}
+    <button class="btn-start" onclick={() => void onStart()}>Start</button>
+    <button class="btn-read" onclick={() => void window.api.ttsRead()} title="Read selected text (Ctrl+R)">Read</button>
+    <button class="btn-icon" onclick={() => window.api.openSettings()} title="Settings">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M4.93 19.07a10 10 0 0 0 14.14 0M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+    </button>
   {/if}
-  <button class="icon-btn" onclick={() => window.api.openHistory()} title="History">◷</button>
-  <button class="icon-btn" onclick={() => window.api.openSettings()} title="Settings">⚙</button>
 </div>
+
 {#if lastTranscript}
   <div class="transcript">{lastTranscript}</div>
 {/if}
 {#if copied}
-  <div class="copied-badge">Copied ✓</div>
+  <div class="toast toast-success">Copied</div>
 {/if}
 {#if errorMessage}
-  <div class="error-notice">⚠ {errorMessage}</div>
+  <div class="toast toast-error">{errorMessage}</div>
 {/if}
 
 <style>
-  .control-strip {
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .pill {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 8px 14px;
     margin: 8px;
-    background: var(--surface, #151D26);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-    border-radius: 12px;
-    color: var(--text, #E8ECF1);
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-size: 13px;
+    background: #121317;
+    border: 1px solid #2a2b30;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.7);
     -webkit-app-region: drag;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    min-height: 44px;
   }
 
   button {
     -webkit-app-region: no-drag;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
   }
 
-  .status {
-    flex: 1;
+  .btn-start {
+    padding: 6px 16px;
+    background: #FFB800;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .btn-start:hover { background: #FFC933; }
+
+  .btn-read {
+    padding: 6px 14px;
+    background: transparent;
+    color: #9c9d9e;
+    border: 1px solid #2a2b30;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 400;
+  }
+  .btn-read:hover { color: #e3e2e7; border-color: #444548; }
+
+  .btn-icon {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: var(--text-secondary, #8899A6);
-  }
-
-  .recording-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #EF4444;
-    flex-shrink: 0;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.8); }
-  }
-
-  .copied-badge {
-    margin: 0 8px 6px;
-    padding: 4px 10px;
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    border-radius: 6px;
-    color: #22C55E;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-size: 12px;
-    text-align: right;
-  }
-
-  .mode-picker {
-    display: flex;
-    gap: 4px;
-  }
-
-  .mode-btn {
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: transparent;
-    color: var(--text-secondary, #8899A6);
-    font-size: 12px;
-    cursor: pointer;
+    color: #5a5b5c;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+  }
+  .btn-icon:hover { background: rgba(255,255,255,0.07); color: #a0a1a2; }
+
+  /* Waveform */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 24px;
+    -webkit-app-region: no-drag;
   }
 
-  .mode-btn.active {
-    background: var(--accent, #3B82F6);
-    border-color: var(--accent, #3B82F6);
-    color: #fff;
+  .bar {
+    display: block;
+    width: 3px;
+    border-radius: 2px;
+    background: #FFB800;
+    transform-origin: center;
+    animation: wave 0.9s ease-in-out infinite;
   }
 
-  .mode-label {
-    font-size: 12px;
-    color: var(--text-secondary, #8899A6);
-    text-transform: capitalize;
+  .bar:nth-child(1) { height: 10px; animation-delay: 0.00s; }
+  .bar:nth-child(2) { height: 18px; animation-delay: 0.12s; }
+  .bar:nth-child(3) { height: 24px; animation-delay: 0.06s; }
+  .bar:nth-child(4) { height: 16px; animation-delay: 0.18s; }
+  .bar:nth-child(5) { height: 22px; animation-delay: 0.03s; }
+  .bar:nth-child(6) { height: 14px; animation-delay: 0.15s; }
+  .bar:nth-child(7) { height: 8px;  animation-delay: 0.09s; }
+
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.35); opacity: 0.6; }
+    50%       { transform: scaleY(1);   opacity: 1;   }
   }
 
-  .chunks {
-    font-size: 12px;
-    color: var(--green, #22C55E);
+  .timer {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFB800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    -webkit-app-region: no-drag;
   }
 
+  .btn-stop {
+    padding: 6px 14px;
+    background: transparent;
+    color: #e3e2e7;
+    border: 1px solid #2a2b30;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 400;
+  }
+  .btn-stop:hover { background: rgba(255,255,255,0.07); }
+
+  /* TTS speaking */
   .speaking-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #3B82F6;
+    background: #FFB800;
     flex-shrink: 0;
-    animation: pulse 1.4s ease-in-out infinite;
+    animation: pulse 1.3s ease-in-out infinite;
+    -webkit-app-region: no-drag;
   }
 
-  .read-btn {
-    padding: 3px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    background: rgba(59, 130, 246, 0.12);
-    color: #3B82F6;
-    font-size: 12px;
-    cursor: pointer;
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.7); }
   }
 
-  .read-btn:hover {
-    background: rgba(59, 130, 246, 0.22);
+  .reading-label {
+    font-size: 13px;
+    color: #FFB800;
+    font-weight: 500;
+    -webkit-app-region: no-drag;
   }
 
-  .stop-reading-btn {
-    padding: 3px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    background: rgba(59, 130, 246, 0.12);
-    color: #3B82F6;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .stop-reading-btn:hover {
-    background: rgba(59, 130, 246, 0.22);
-  }
-
-  .error-notice {
-    margin: 0 8px 6px;
-    padding: 4px 10px;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 6px;
-    color: #EF4444;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-size: 12px;
-  }
-
+  /* Transcript */
   .transcript {
     margin: 0 8px 8px;
-    padding: 8px 12px;
-    background: var(--surface, #151D26);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-    border-radius: 8px;
-    color: var(--text, #E8ECF1);
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    padding: 10px 14px;
+    background: #121317;
+    border: 1px solid #2a2b30;
+    border-radius: 10px;
+    color: #cdcdcd;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  /* Toasts */
+  .toast {
+    margin: 0 8px 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .toast-success {
+    background: rgba(89,212,153,0.12);
+    border: 1px solid rgba(89,212,153,0.25);
+    color: #59d499;
+  }
+
+  .toast-error {
+    background: rgba(255,97,97,0.1);
+    border: 1px solid rgba(255,97,97,0.25);
+    color: #ff6161;
   }
 </style>

@@ -9,6 +9,7 @@ import { SecretStore } from '../store/secret-store'
 import { HistoryStore } from '../store/history-store'
 import { injectPaste, getSelectedText } from '../injection/text-injector'
 import * as ttsEngine from '../tts/tts-engine'
+import { listVoices } from '../tts/piper-sidecar'
 import log from '../logger'
 
 const logger = log.scope('ipc')
@@ -153,7 +154,8 @@ export function registerHandlers(
   })
 
   ipcMain.handle(IPC.TTS_SPEAK, (_e, text: string) => {
-    void ttsEngine.speak(text)
+    const voiceFile = settingsStore.get('voiceFile') || undefined
+    void ttsEngine.speak(text, voiceFile)
     logger.info('TTS speak requested', { chars: text.length })
   })
 
@@ -185,6 +187,9 @@ export function registerHandlers(
       }
       return
     }
-    void ttsEngine.speak(result.text)
+    const voiceFile = settingsStore.get('voiceFile') || undefined
+    void ttsEngine.speak(result.text, voiceFile)
   })
+
+  ipcMain.handle(IPC.VOICES_LIST, () => listVoices())
 }

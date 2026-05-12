@@ -7,6 +7,9 @@ export const POLISH_DEFAULTS: PolishSettings = {
   fixGrammar: true,
   removeFillerWords: true,
   pasteAtCursor: true,
+  formatMode: 'note',
+  voiceFile: '',
+  audioDeviceId: '',
 }
 
 export const STT_DEFAULTS: SttSettings = {
