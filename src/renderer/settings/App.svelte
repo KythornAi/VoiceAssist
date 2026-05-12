@@ -67,14 +67,17 @@
   }
 
   async function onSave() {
-    if (!polish || !stt) return
-    await Promise.all([
-      window.api.setSettings(polish),
-      window.api.setSttSettings(stt),
-    ])
-    if (savedTimer) clearTimeout(savedTimer)
-    saved = true
-    savedTimer = setTimeout(() => { saved = false }, 2000)
+    if (!polish) return
+    try {
+      const saves: Promise<unknown>[] = [window.api.setSettings({ ...polish })]
+      if (stt) saves.push(window.api.setSttSettings({ ...stt }))
+      await Promise.all(saves)
+      if (savedTimer) clearTimeout(savedTimer)
+      saved = true
+      savedTimer = setTimeout(() => { saved = false }, 2000)
+    } catch (err) {
+      console.error('Save failed', err)
+    }
   }
 
   async function onSaveKey() {

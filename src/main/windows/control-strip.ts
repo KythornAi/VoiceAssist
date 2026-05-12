@@ -1,7 +1,7 @@
 import { BrowserWindow, screen } from 'electron'
 
-// 310px content + 4px each side — transparent compositor border fix (V1 gotcha)
-const WIDTH = 318
+// content ~200px + 8px margin each side — transparent compositor border fix (V1 gotcha)
+const WIDTH = 220
 const HEIGHT = 436
 
 export function createControlStripWindow(preload: string): BrowserWindow {
