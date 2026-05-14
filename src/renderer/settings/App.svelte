@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PolishSettings, SttSettings, TtsSettings, HistoryItem, FormatMode, VoiceInfo } from '../../shared/types'
 
-  type Tab = 'settings' | 'history' | 'voices'
+  type Tab = 'settings' | 'history' | 'audio'
 
   let activeTab = $state<Tab>('settings')
 
@@ -73,7 +73,7 @@
   function onTabChange(tab: Tab) {
     activeTab = tab
     if (tab === 'history') void loadHistory()
-    if (tab === 'voices') void loadVoices()
+    if (tab === 'audio') void loadVoices()
   }
 
   async function loadHistory() {
@@ -155,7 +155,7 @@
   <header>
     <span class="app-name">VoiceAssist</span>
     <nav>
-      {#each (['settings', 'history', 'voices'] as Tab[]) as tab}
+      {#each (['settings', 'history', 'audio'] as Tab[]) as tab}
         <button
           class="tab-btn"
           class:active={activeTab === tab}
@@ -167,37 +167,6 @@
 
   {#if activeTab === 'settings' && polish && stt}
     <div class="tab-content">
-
-      <section>
-        <h2>Speech Recognition</h2>
-        <div class="provider-row">
-          <button class="provider-btn" class:active={stt.provider === 'local'}
-            onclick={() => { if (stt) stt = { ...stt, provider: 'local' } }}>Local (Whisper)</button>
-          <button class="provider-btn" class:active={stt.provider === 'openai'}
-            onclick={() => { if (stt) stt = { ...stt, provider: 'openai' } }}>OpenAI Cloud</button>
-        </div>
-        <p class="hint">{stt.provider === 'local'
-          ? 'Using on-device Whisper. Works offline. No API key needed.'
-          : 'Using OpenAI cloud transcription. Requires API key. ~$0.003/min.'}</p>
-        {#if stt.provider === 'openai'}
-          {#if hasOpenAIKey}
-            <div class="key-row">
-              <span class="key-status">API key saved</span>
-              <button class="btn-ghost" onclick={() => void onClearKey()}>Remove</button>
-            </div>
-          {:else if showKeyInput}
-            <div class="add-row">
-              <input type="password" bind:value={newKey} placeholder="sk-..." />
-              <button class="btn-primary" onclick={() => void onSaveKey()}>Save</button>
-            </div>
-          {:else}
-            <button class="btn-ghost" onclick={() => { showKeyInput = true }}>+ Add API key</button>
-          {/if}
-          {#if !hasOpenAIKey}
-            <p class="key-warning">OpenAI key required to use cloud transcription.</p>
-          {/if}
-        {/if}
-      </section>
 
       <section>
         <h2>Format Mode</h2>
@@ -323,8 +292,39 @@
       {/if}
     </div>
 
-  {:else if activeTab === 'voices' && tts}
+  {:else if activeTab === 'audio' && tts && stt}
     <div class="tab-content">
+      <section>
+        <h2>Speech Recognition</h2>
+        <div class="provider-row">
+          <button class="provider-btn" class:active={stt.provider === 'local'}
+            onclick={() => { if (stt) stt = { ...stt, provider: 'local' } }}>Local (Whisper)</button>
+          <button class="provider-btn" class:active={stt.provider === 'openai'}
+            onclick={() => { if (stt) stt = { ...stt, provider: 'openai' } }}>OpenAI Cloud</button>
+        </div>
+        <p class="hint">{stt.provider === 'local'
+          ? 'Using on-device Whisper. Works offline. No API key needed.'
+          : 'Using OpenAI cloud transcription. Requires API key. ~$0.003/min.'}</p>
+        {#if stt.provider === 'openai'}
+          {#if hasOpenAIKey}
+            <div class="key-row">
+              <span class="key-status">API key saved</span>
+              <button class="btn-ghost" onclick={() => void onClearKey()}>Remove</button>
+            </div>
+          {:else if showKeyInput}
+            <div class="add-row">
+              <input type="password" bind:value={newKey} placeholder="sk-..." />
+              <button class="btn-primary" onclick={() => void onSaveKey()}>Save</button>
+            </div>
+          {:else}
+            <button class="btn-ghost" onclick={() => { showKeyInput = true }}>+ Add API key</button>
+          {/if}
+          {#if !hasOpenAIKey}
+            <p class="key-warning">OpenAI key required to use cloud transcription.</p>
+          {/if}
+        {/if}
+      </section>
+
       <section>
         <h2>Speech Synthesis</h2>
         <div class="provider-row">
