@@ -31,6 +31,9 @@ export const IPC = {
   VOICES_LIST: 'voices:list',
   TTS_SETTINGS_GET: 'tts-settings:get',
   TTS_SETTINGS_SET: 'tts-settings:set',
+  TTS_PLAY_WAV: 'tts:playWav',
+  TTS_PLAY_DONE: 'tts:playDone',
+  TTS_STOP_WAV: 'tts:stopWav',
 } as const
 
 export interface AppPingResult {
@@ -92,4 +95,7 @@ export interface WindowApi {
   listVoices: () => Promise<VoiceInfo[]>
   getTtsSettings: () => Promise<TtsSettings>
   setTtsSettings: (patch: Partial<TtsSettings>) => Promise<void>
+  onPlayWav: (cb: (buffer: ArrayBuffer) => void) => () => void
+  playDone: (outcome: 'done' | 'stopped' | 'error') => void
+  onStopWav: (cb: () => void) => () => void
 }

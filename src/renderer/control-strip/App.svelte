@@ -15,6 +15,40 @@
   let ttsState = $state<TtsState>('idle')
   let recordingSeconds = $state(0)
   let timerInterval: ReturnType<typeof setInterval> | null = null
+  let audioEl: HTMLAudioElement | null = null
+  let playbackActive = false
+  let currentBlobUrl: string | null = null
+
+  function cleanupBlobUrl() {
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl)
+      currentBlobUrl = null
+    }
+  }
+
+  $effect(() => {
+    return window.api.onPlayWav((buffer) => {
+      cleanupBlobUrl()
+      const blob = new Blob([buffer], { type: 'audio/wav' })
+      currentBlobUrl = URL.createObjectURL(blob)
+      playbackActive = true
+      if (audioEl) {
+        audioEl.src = currentBlobUrl
+        audioEl.play().catch(() => { /* interrupted by stop */ })
+      }
+    })
+  })
+
+  $effect(() => {
+    return window.api.onStopWav(() => {
+      if (!playbackActive || !audioEl) return
+      playbackActive = false
+      audioEl.pause()
+      audioEl.src = ''
+      cleanupBlobUrl()
+      window.api.playDone('stopped')
+    })
+  })
 
   $effect(() => {
     void window.api.getSettings().then(s => {
@@ -158,6 +192,22 @@
 {#if errorMessage}
   <div class="toast toast-error">{errorMessage}</div>
 {/if}
+
+<audio
+  bind:this={audioEl}
+  onended={() => {
+    if (!playbackActive) return
+    playbackActive = false
+    cleanupBlobUrl()
+    window.api.playDone('done')
+  }}
+  onerror={() => {
+    if (!playbackActive) return
+    playbackActive = false
+    cleanupBlobUrl()
+    window.api.playDone('error')
+  }}
+></audio>
 
 <style>
   :global(body) {

@@ -10,8 +10,12 @@ const HEALTH_POLL_MS = 200
 const HEALTH_TIMEOUT_MS = 45_000
 
 function getBinaryPath(): string {
+  const binName = process.platform === 'win32' ? 'whisper-server.exe' : 'whisper-server'
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'bin', 'whisper-server')
+    return path.join(process.resourcesPath, 'bin', binName)
+  }
+  if (process.platform === 'win32') {
+    return path.join(app.getAppPath(), 'resources', 'bin-win', binName)
   }
   return '/opt/homebrew/bin/whisper-server'
 }

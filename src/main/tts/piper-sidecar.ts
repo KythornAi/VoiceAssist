@@ -61,7 +61,8 @@ function getBinaryPath(): string {
   }
 
   const binBase = app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), 'resources')
-  cachedPiperPath = path.join(binBase, 'bin', binName)
+  const binSubDir = !app.isPackaged && process.platform === 'win32' ? 'bin-win' : 'bin'
+  cachedPiperPath = path.join(binBase, binSubDir, binName)
   return cachedPiperPath
 }
 

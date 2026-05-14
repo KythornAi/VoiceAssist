@@ -108,6 +108,22 @@ const api: WindowApi = {
 
   setTtsSettings: (patch: Partial<TtsSettings>) =>
     ipcRenderer.invoke(IPC.TTS_SETTINGS_SET, patch),
+
+  onPlayWav: (cb) => {
+    const handler = (_: IpcRendererEvent, buffer: ArrayBuffer) => cb(buffer)
+    ipcRenderer.on(IPC.TTS_PLAY_WAV, handler)
+    return () => ipcRenderer.removeListener(IPC.TTS_PLAY_WAV, handler)
+  },
+
+  playDone: (outcome) => {
+    ipcRenderer.send(IPC.TTS_PLAY_DONE, outcome)
+  },
+
+  onStopWav: (cb) => {
+    const handler = () => cb()
+    ipcRenderer.on(IPC.TTS_STOP_WAV, handler)
+    return () => ipcRenderer.removeListener(IPC.TTS_STOP_WAV, handler)
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

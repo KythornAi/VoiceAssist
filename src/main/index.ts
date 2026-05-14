@@ -27,7 +27,7 @@ app.whenReady().then(() => {
   const sttSettingsStore = createSttSettingsStore()
   const ttsSettingsStore = createTtsSettingsStore()
   const secretStore = new SecretStore()
-  ttsEngine.init(ttsSettingsStore, () => secretStore.getOpenAIKey())
+  ttsEngine.init(ttsSettingsStore, () => secretStore.getOpenAIKey(), () => getWindows().controlStrip ?? null)
   const vocabStore = new JsonStore<{ entries: Record<string, string> }>('vocabulary.json', { entries: {} })
   const historyStore = new HistoryStore(
     new JsonStore<{ items: HistoryItem[] }>('history.json', { items: [] }),
