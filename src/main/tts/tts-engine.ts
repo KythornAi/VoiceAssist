@@ -6,8 +6,19 @@ import fs from 'node:fs'
 import log from '../logger'
 import { checkPiperReady, synthesise } from './piper-sidecar'
 import * as say from './say-speaker'
+import { synthesise as openAiSynthesize, NoApiKeyError } from './providers/openai-cloud'
+import type { JsonStore } from '../store/json-store'
+import type { TtsSettings } from '../../shared/types'
 
 const logger = log.scope('tts-engine')
+
+let ttsSettingsStore: JsonStore<TtsSettings> | null = null
+let getApiKey: (() => string | null) | null = null
+
+export function init(store: JsonStore<TtsSettings>, apiKeyGetter: () => string | null): void {
+  ttsSettingsStore = store
+  getApiKey = apiKeyGetter
+}
 
 export type TtsState = 'idle' | 'speaking'
 
@@ -40,11 +51,9 @@ export function stop(): void {
 
 type AfplayOutcome = 'done' | 'stopped' | 'error'
 
-async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOutcome> {
-  const wav = await synthesise(text, voiceFile ? { voice: voiceFile } : {})
-  fs.writeFileSync(tmpWav, wav)
+async function playWav(wavPath: string): Promise<AfplayOutcome> {
   return new Promise<AfplayOutcome>((resolve) => {
-    activePlayback = spawn('afplay', [tmpWav])
+    activePlayback = spawn('afplay', [wavPath])
     activePlayback.on('close', (_code, signal) => {
       activePlayback = null
       resolve(signal ? 'stopped' : 'done')
@@ -57,9 +66,40 @@ async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOut
   })
 }
 
+async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOutcome> {
+  const wav = await synthesise(text, voiceFile ? { voice: voiceFile } : {})
+  fs.writeFileSync(tmpWav, wav)
+  return playWav(tmpWav)
+}
+
 export async function speak(text: string, voiceFile?: string): Promise<void> {
   stop()
   setState('speaking')
+
+  if (ttsSettingsStore?.get('provider') === 'openai') {
+    const key = getApiKey?.() ?? null
+    if (!key) {
+      logger.warn('OpenAI TTS selected but no API key set — falling back to local')
+    } else {
+      try {
+        const model = ttsSettingsStore.get('model')
+        const voice = ttsSettingsStore.get('voice')
+        const wavPath = await openAiSynthesize(text, key, model, voice)
+        const outcome = await playWav(wavPath)
+        if (outcome !== 'error') {
+          setState('idle')
+          return
+        }
+        logger.warn('afplay failed for OpenAI TTS, falling back to local')
+      } catch (err) {
+        if (err instanceof NoApiKeyError) {
+          logger.warn('OpenAI TTS: no API key, falling back to local')
+        } else {
+          logger.warn('OpenAI TTS synthesis failed, falling back to local', err)
+        }
+      }
+    }
+  }
 
   const piper = checkPiperReady()
   if (piper.ready) {

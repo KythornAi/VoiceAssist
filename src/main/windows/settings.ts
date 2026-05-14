@@ -14,5 +14,4 @@ export function createSettingsWindow(preload: string): BrowserWindow {
       nodeIntegration: false,
     },
   })
-  return win
 }

@@ -10,7 +10,7 @@ import { getSelectedText, getLastExternalApp } from './injection/text-injector'
 import * as ttsEngine from './tts/tts-engine'
 import { TranscriptPipeline } from './text-polish/pipeline'
 import { JsonStore } from './store/json-store'
-import { createSettingsStore, createSttSettingsStore } from './store/settings-store'
+import { createSettingsStore, createSttSettingsStore, createTtsSettingsStore } from './store/settings-store'
 import { SecretStore } from './store/secret-store'
 import { HistoryStore } from './store/history-store'
 import type { HistoryItem } from '../shared/types'
@@ -25,7 +25,9 @@ app.whenReady().then(() => {
   }
   const settingsStore = createSettingsStore()
   const sttSettingsStore = createSttSettingsStore()
+  const ttsSettingsStore = createTtsSettingsStore()
   const secretStore = new SecretStore()
+  ttsEngine.init(ttsSettingsStore, () => secretStore.getOpenAIKey())
   const vocabStore = new JsonStore<{ entries: Record<string, string> }>('vocabulary.json', { entries: {} })
   const historyStore = new HistoryStore(
     new JsonStore<{ items: HistoryItem[] }>('history.json', { items: [] }),
@@ -38,7 +40,7 @@ app.whenReady().then(() => {
     () => settingsStore.getAll(),
   )
   const session = new SessionManager(stt, pipeline)
-  registerHandlers(session, settingsStore, sttSettingsStore, secretStore, vocabStore, historyStore)
+  registerHandlers(session, settingsStore, sttSettingsStore, ttsSettingsStore, secretStore, vocabStore, historyStore)
   createAllWindows()
 
   globalShortcut.register('Control+Shift+D', () => {

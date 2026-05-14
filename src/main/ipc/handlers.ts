@@ -1,7 +1,7 @@
 import { app, clipboard, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc-contract'
 import type { AudioChunkPayload, TranscriptResult, SessionErrorPayload } from '../../shared/ipc-contract'
-import type { PolishSettings, SttSettings, FormatMode } from '../../shared/types'
+import type { PolishSettings, SttSettings, TtsSettings, FormatMode } from '../../shared/types'
 import { SessionManager } from '../session/session-manager'
 import { getWindows, showHistory, showSettings } from '../windows/window-manager'
 import { JsonStore } from '../store/json-store'
@@ -18,6 +18,7 @@ export function registerHandlers(
   session: SessionManager,
   settingsStore: JsonStore<PolishSettings>,
   sttSettingsStore: JsonStore<SttSettings>,
+  ttsSettingsStore: JsonStore<TtsSettings>,
   secretStore: SecretStore,
   vocabStore: JsonStore<{ entries: Record<string, string> }>,
   historyStore: HistoryStore,
@@ -192,4 +193,13 @@ export function registerHandlers(
   })
 
   ipcMain.handle(IPC.VOICES_LIST, () => listVoices())
+
+  ipcMain.handle(IPC.TTS_SETTINGS_GET, () => ttsSettingsStore.getAll())
+
+  ipcMain.handle(IPC.TTS_SETTINGS_SET, (_e, patch: Partial<TtsSettings>) => {
+    for (const [k, v] of Object.entries(patch)) {
+      ttsSettingsStore.set(k as keyof TtsSettings, v as TtsSettings[keyof TtsSettings])
+    }
+    logger.info('TTS settings updated', patch)
+  })
 }

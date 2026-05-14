@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { IPC, type WindowApi, type TranscriptResult, type SessionErrorPayload } from '../shared/ipc-contract'
-import type { SessionState, PolishSettings, SttSettings, FormatMode, TtsState } from '../shared/types'
+import type { SessionState, PolishSettings, SttSettings, TtsSettings, FormatMode, TtsState } from '../shared/types'
 
 const api: WindowApi = {
   ping: () =>
@@ -102,6 +102,12 @@ const api: WindowApi = {
 
   listVoices: () =>
     ipcRenderer.invoke(IPC.VOICES_LIST),
+
+  getTtsSettings: () =>
+    ipcRenderer.invoke(IPC.TTS_SETTINGS_GET),
+
+  setTtsSettings: (patch: Partial<TtsSettings>) =>
+    ipcRenderer.invoke(IPC.TTS_SETTINGS_SET, patch),
 }
 
 contextBridge.exposeInMainWorld('api', api)

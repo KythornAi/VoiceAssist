@@ -1,5 +1,5 @@
 import { JsonStore } from './json-store'
-import type { PolishSettings, SttSettings } from '../../shared/types'
+import type { PolishSettings, SttSettings, TtsSettings } from '../../shared/types'
 
 export const POLISH_DEFAULTS: PolishSettings = {
   locale: 'uk',
@@ -23,4 +23,14 @@ export function createSettingsStore(): JsonStore<PolishSettings> {
 
 export function createSttSettingsStore(): JsonStore<SttSettings> {
   return new JsonStore<SttSettings>('stt-settings.json', STT_DEFAULTS)
+}
+
+export const TTS_DEFAULTS: TtsSettings = {
+  provider: 'local',
+  model: 'tts-1',
+  voice: 'alloy',
+}
+
+export function createTtsSettingsStore(): JsonStore<TtsSettings> {
+  return new JsonStore<TtsSettings>('tts-settings.json', TTS_DEFAULTS)
 }

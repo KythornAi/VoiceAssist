@@ -1,4 +1,4 @@
-import type { SessionState, PolishSettings, SttSettings, FormatMode, HistoryItem, TtsState, VoiceInfo } from './types'
+import type { SessionState, PolishSettings, SttSettings, TtsSettings, FormatMode, HistoryItem, TtsState, VoiceInfo } from './types'
 
 export const IPC = {
   APP_PING: 'app:ping',
@@ -29,6 +29,8 @@ export const IPC = {
   TTS_STATE: 'tts:state',
   TTS_READ: 'tts:read',
   VOICES_LIST: 'voices:list',
+  TTS_SETTINGS_GET: 'tts-settings:get',
+  TTS_SETTINGS_SET: 'tts-settings:set',
 } as const
 
 export interface AppPingResult {
@@ -88,4 +90,6 @@ export interface WindowApi {
   onTtsState: (cb: (state: TtsState) => void) => () => void
   ttsRead: () => Promise<void>
   listVoices: () => Promise<VoiceInfo[]>
+  getTtsSettings: () => Promise<TtsSettings>
+  setTtsSettings: (patch: Partial<TtsSettings>) => Promise<void>
 }

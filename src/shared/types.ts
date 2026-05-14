@@ -53,3 +53,11 @@ export interface HistoryItem {
 }
 
 export type TtsState = 'idle' | 'speaking'
+
+export type TtsProvider = 'local' | 'openai'
+
+export type TtsSettings = {
+  provider: TtsProvider
+  model: string
+  voice: string
+}

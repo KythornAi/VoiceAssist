@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PolishSettings, SttSettings, HistoryItem, FormatMode, VoiceInfo } from '../../shared/types'
+  import type { PolishSettings, SttSettings, TtsSettings, HistoryItem, FormatMode, VoiceInfo } from '../../shared/types'
 
   type Tab = 'settings' | 'history' | 'voices'
 
@@ -7,6 +7,7 @@
 
   let polish = $state<PolishSettings | null>(null)
   let stt = $state<SttSettings | null>(null)
+  let tts = $state<TtsSettings | null>(null)
   let vocab = $state<Record<string, string>>({})
   let hasOpenAIKey = $state(false)
   let newKey = $state('')
@@ -25,19 +26,30 @@
 
   const FORMAT_MODES: FormatMode[] = ['note', 'email', 'chat', 'terminal']
 
+  const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer']
+
+  const FORMAT_MODE_DESCRIPTIONS: Record<FormatMode, string> = {
+    note: 'Plain transcription with no extra formatting. Best for general dictation.',
+    email: 'Detects greetings and sign-offs and lays out greeting, body and sign-off on separate lines.',
+    chat: 'Removes the trailing full stop for a casual messaging feel.',
+    terminal: 'Lowercases everything and strips all punctuation. Designed for command-line input.',
+  }
+
   $effect(() => {
     void loadSettings()
   })
 
   async function loadSettings() {
-    const [p, s, v, k] = await Promise.all([
+    const [p, s, t, v, k] = await Promise.all([
       window.api.getSettings(),
       window.api.getSttSettings(),
+      window.api.getTtsSettings(),
       window.api.getVocab(),
       window.api.hasOpenAIKey(),
     ])
     polish = p
     stt = s
+    tts = t
     vocab = v
     hasOpenAIKey = k
     void loadAudioDevices()
@@ -71,6 +83,7 @@
     try {
       const saves: Promise<unknown>[] = [window.api.setSettings({ ...polish })]
       if (stt) saves.push(window.api.setSttSettings({ ...stt }))
+      if (tts) saves.push(window.api.setTtsSettings({ ...tts }))
       await Promise.all(saves)
       if (savedTimer) clearTimeout(savedTimer)
       saved = true
@@ -189,7 +202,7 @@
             >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
           {/each}
         </div>
-        <p class="hint">Default format applied to all recordings until changed.</p>
+        <p class="hint">{FORMAT_MODE_DESCRIPTIONS[polish.formatMode]}</p>
       </section>
 
       <section>
@@ -304,32 +317,81 @@
       {/if}
     </div>
 
-  {:else if activeTab === 'voices'}
+  {:else if activeTab === 'voices' && tts}
     <div class="tab-content">
-      {#if voices.length === 0}
-        <div class="empty-state">
-          <span class="empty-icon">🎙</span>
-          <p>No Piper voices installed.<br>Run <code>npm run download:piper</code> to install.</p>
+      <section>
+        <h2>Speech Synthesis</h2>
+        <div class="provider-row">
+          <button class="provider-btn" class:active={tts.provider === 'local'}
+            onclick={() => { if (tts) tts = { ...tts, provider: 'local' } }}>Local (Piper)</button>
+          <button class="provider-btn" class:active={tts.provider === 'openai'}
+            onclick={() => { if (tts) tts = { ...tts, provider: 'openai' } }}>OpenAI Cloud</button>
         </div>
-      {:else}
-        <p class="hint">Select the voice used when reading selected text aloud.</p>
-        <div class="voice-list">
-          {#each voices as voice}
-            <label class="voice-row" class:active={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}>
-              <input type="radio" name="voice" value={voice.file}
-                checked={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}
-                onchange={() => { if (polish) polish = { ...polish, voiceFile: voice.file } }} />
-              <div class="voice-info">
-                <span class="voice-label">{voice.label}</span>
-                <span class="voice-meta">{voice.quality} quality · {voice.lang}</span>
-              </div>
-            </label>
-          {/each}
-        </div>
-        <div class="save-bar">
-          <button class="btn-save" onclick={() => void onSave()}>{saved ? 'Saved!' : 'Save Changes'}</button>
-        </div>
+        <p class="hint">{tts.provider === 'local'
+          ? 'Uses bundled Piper voices. Works offline. No API key needed.'
+          : 'Uses OpenAI TTS. Requires API key. Higher quality than local voices. Costs apply per character.'}</p>
+        {#if tts.provider === 'openai'}
+          {#if hasOpenAIKey}
+            <div class="key-row">
+              <span class="key-status">API key saved</span>
+            </div>
+          {:else}
+            <p class="key-warning">OpenAI key required. Add it in the Settings tab under Speech Recognition.</p>
+          {/if}
+          <div class="tts-select-row">
+            <div class="tts-select-group">
+              <span class="tts-select-label">Model</span>
+              <select class="tts-select"
+                value={tts.model}
+                onchange={(e) => { if (tts) tts = { ...tts, model: (e.target as HTMLSelectElement).value } }}>
+                <option value="tts-1">tts-1 — Fast ($15 / 1M chars)</option>
+                <option value="tts-1-hd">tts-1-hd — High quality ($30 / 1M chars)</option>
+              </select>
+            </div>
+            <div class="tts-select-group">
+              <span class="tts-select-label">Voice</span>
+              <select class="tts-select"
+                value={tts.voice}
+                onchange={(e) => { if (tts) tts = { ...tts, voice: (e.target as HTMLSelectElement).value } }}>
+                {#each OPENAI_VOICES as v}
+                  <option value={v}>{v}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+        {/if}
+      </section>
+
+      {#if tts.provider === 'local'}
+        {#if voices.length === 0}
+          <div class="empty-state">
+            <span class="empty-icon">🎙</span>
+            <p>No Piper voices installed.<br>Run <code>npm run download:piper</code> to install.</p>
+          </div>
+        {:else}
+          <section>
+            <h2>Piper Voice</h2>
+            <p class="hint">Select the voice used when reading selected text aloud.</p>
+            <div class="voice-list">
+              {#each voices as voice}
+                <label class="voice-row" class:active={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}>
+                  <input type="radio" name="voice" value={voice.file}
+                    checked={polish?.voiceFile === voice.file || (!polish?.voiceFile && voices[0] === voice)}
+                    onchange={() => { if (polish) polish = { ...polish, voiceFile: voice.file } }} />
+                  <div class="voice-info">
+                    <span class="voice-label">{voice.label}</span>
+                    <span class="voice-meta">{voice.quality} quality · {voice.lang}</span>
+                  </div>
+                </label>
+              {/each}
+            </div>
+          </section>
+        {/if}
       {/if}
+
+      <div class="save-bar">
+        <button class="btn-save" onclick={() => void onSave()}>{saved ? 'Saved!' : 'Save Changes'}</button>
+      </div>
     </div>
   {/if}
 </main>
@@ -676,6 +738,26 @@
   .voice-info { display: flex; flex-direction: column; gap: 2px; }
   .voice-label { font-size: 13px; color: #f4f4f6; font-weight: 500; }
   .voice-meta { font-size: 11px; color: #6a6b6c; }
+
+  .tts-select-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .tts-select-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+
+  .tts-select-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #6a6b6c; }
+
+  .tts-select {
+    padding: 8px 10px;
+    background: #0d0e12;
+    color: #f4f4f6;
+    border: 1px solid #242728;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .tts-select:focus { border-color: rgba(255,184,0,0.4); }
 
   code {
     font-family: 'SF Mono', 'Fira Code', monospace;
