@@ -66,7 +66,7 @@ export async function getSelectedText(): Promise<SelectionResult> {
       'tell application "System Events"',
       ...keystrokeLines,
       'end tell',
-      'delay 0.15',
+      'delay 0.3',
       'set newClip to the clipboard',
       'try',
       'set the clipboard to oldClip',

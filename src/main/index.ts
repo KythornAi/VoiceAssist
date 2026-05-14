@@ -57,7 +57,7 @@ app.whenReady().then(() => {
       return
     }
     logger.info('Ctrl+R: target app', { target: getLastExternalApp() })
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise(resolve => setTimeout(resolve, 300))
     const result = await getSelectedText()
     logger.info('getSelectedText result', { ok: result.ok, chars: result.ok ? result.text.length : 0 })
     if (!result.ok) {
