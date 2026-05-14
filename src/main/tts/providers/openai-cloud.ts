@@ -22,14 +22,24 @@ export class ApiError extends Error {
 
 const tmpWav = path.join(tmpdir(), 'voiceassist-tts-openai.wav')
 
-export async function synthesise(text: string, apiKey: string, model: string, voice: string): Promise<string> {
+export async function synthesise(
+  text: string,
+  apiKey: string,
+  model: string,
+  voice: string,
+  speed = 1.0,
+  instructions = '',
+): Promise<string> {
+  const body: Record<string, unknown> = { model, input: text, voice, response_format: 'wav', speed }
+  if (instructions && model === 'gpt-4o-mini-tts') body.instructions = instructions
+
   const response = await fetch(SPEECH_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model, input: text, voice, response_format: 'wav' }),
+    body: JSON.stringify(body),
   })
 
   if (!response.ok) {

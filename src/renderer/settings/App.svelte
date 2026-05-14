@@ -27,6 +27,12 @@
   const FORMAT_MODES: FormatMode[] = ['note', 'email', 'chat', 'terminal']
 
   const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer']
+  const TTS_SPEEDS: { label: string; value: number }[] = [
+    { label: '0.75×', value: 0.75 },
+    { label: '1×', value: 1 },
+    { label: '1.25×', value: 1.25 },
+    { label: '1.5×', value: 1.5 },
+  ]
 
   const FORMAT_MODE_DESCRIPTIONS: Record<FormatMode, string> = {
     note: 'Plain transcription with no extra formatting. Best for general dictation.',
@@ -346,6 +352,7 @@
                 onchange={(e) => { if (tts) tts = { ...tts, model: (e.target as HTMLSelectElement).value } }}>
                 <option value="tts-1">tts-1 — Fast ($15 / 1M chars)</option>
                 <option value="tts-1-hd">tts-1-hd — High quality ($30 / 1M chars)</option>
+                <option value="gpt-4o-mini-tts">gpt-4o-mini-tts — Instructable</option>
               </select>
             </div>
             <div class="tts-select-group">
@@ -359,7 +366,30 @@
               </select>
             </div>
           </div>
+          {#if tts.model === 'gpt-4o-mini-tts'}
+            <div class="instructions-group">
+              <span class="tts-select-label">Voice instructions</span>
+              <textarea
+                class="tts-instructions"
+                rows={2}
+                placeholder="e.g. Speak with a deep British male accent"
+                value={tts.instructions ?? ''}
+                oninput={(e) => { if (tts) tts = { ...tts, instructions: (e.target as HTMLTextAreaElement).value } }}
+              ></textarea>
+            </div>
+          {/if}
         {/if}
+      </section>
+
+      <section>
+        <h2>Playback Speed</h2>
+        <div class="mode-row">
+          {#each TTS_SPEEDS as s}
+            <button class="mode-chip" class:active={tts.speed === s.value}
+              onclick={() => { if (tts) tts = { ...tts, speed: s.value } }}
+            >{s.label}</button>
+          {/each}
+        </div>
       </section>
 
       {#if tts.provider === 'local'}
@@ -758,6 +788,22 @@
     transition: border-color 0.15s;
   }
   .tts-select:focus { border-color: rgba(255,184,0,0.4); }
+
+  .instructions-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+  .tts-instructions {
+    background: #111214;
+    border: 1px solid #2a2b2e;
+    border-radius: 6px;
+    color: #cdcdcd;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 10px;
+    resize: vertical;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .tts-instructions:focus { border-color: rgba(255,184,0,0.4); outline: none; }
 
   code {
     font-family: 'SF Mono', 'Fira Code', monospace;

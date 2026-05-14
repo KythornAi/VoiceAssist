@@ -29,6 +29,8 @@ export const TTS_DEFAULTS: TtsSettings = {
   provider: 'local',
   model: 'tts-1',
   voice: 'alloy',
+  speed: 1,
+  instructions: '',
 }
 
 export function createTtsSettingsStore(): JsonStore<TtsSettings> {

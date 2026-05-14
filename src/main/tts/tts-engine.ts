@@ -66,8 +66,8 @@ async function playWav(wavPath: string): Promise<AfplayOutcome> {
   })
 }
 
-async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOutcome> {
-  const wav = await synthesise(text, voiceFile ? { voice: voiceFile } : {})
+async function playViaPiper(text: string, voiceFile?: string, speed = 1.0): Promise<AfplayOutcome> {
+  const wav = await synthesise(text, { ...(voiceFile ? { voice: voiceFile } : {}), speed })
   fs.writeFileSync(tmpWav, wav)
   return playWav(tmpWav)
 }
@@ -75,6 +75,9 @@ async function playViaPiper(text: string, voiceFile?: string): Promise<AfplayOut
 export async function speak(text: string, voiceFile?: string): Promise<void> {
   stop()
   setState('speaking')
+
+  const speed = ttsSettingsStore?.get('speed') ?? 1.0
+  const instructions = ttsSettingsStore?.get('instructions') ?? ''
 
   if (ttsSettingsStore?.get('provider') === 'openai') {
     const key = getApiKey?.() ?? null
@@ -84,7 +87,7 @@ export async function speak(text: string, voiceFile?: string): Promise<void> {
       try {
         const model = ttsSettingsStore.get('model')
         const voice = ttsSettingsStore.get('voice')
-        const wavPath = await openAiSynthesize(text, key, model, voice)
+        const wavPath = await openAiSynthesize(text, key, model, voice, speed, instructions)
         const outcome = await playWav(wavPath)
         if (outcome !== 'error') {
           setState('idle')
@@ -104,7 +107,7 @@ export async function speak(text: string, voiceFile?: string): Promise<void> {
   const piper = checkPiperReady()
   if (piper.ready) {
     try {
-      const outcome = await playViaPiper(text, voiceFile)
+      const outcome = await playViaPiper(text, voiceFile, speed)
       if (outcome !== 'error') {
         setState('idle')
         return

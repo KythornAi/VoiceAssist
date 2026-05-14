@@ -60,4 +60,6 @@ export type TtsSettings = {
   provider: TtsProvider
   model: string
   voice: string
+  speed: number
+  instructions: string
 }
