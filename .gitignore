@@ -3,6 +3,7 @@ out/
 dist/
 *.dmg
 *.exe
+!resources/bin-win/*.exe
 .DS_Store
 resources/bin/*
 !resources/bin/.gitkeep
