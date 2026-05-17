@@ -63,15 +63,17 @@ export async function getSelectedText(): Promise<SelectionResult> {
       'try',
       'set oldClip to the clipboard',
       'end try',
+      // Clear clipboard first so we can detect selection even when selected text
+      // matches what was previously on the clipboard (e.g. just-dictated text).
+      'set the clipboard to ""',
       'tell application "System Events"',
       ...keystrokeLines,
       'end tell',
-      'delay 0.3',
+      'delay 0.4',
       'set newClip to the clipboard',
       'try',
       'set the clipboard to oldClip',
       'end try',
-      'if newClip is oldClip then return ""',
       'return newClip',
     ])
     return { ok: true, text: stdout.trim() }
