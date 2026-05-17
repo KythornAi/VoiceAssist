@@ -45,6 +45,11 @@
     void loadSettings()
   })
 
+  $effect(() => {
+    navigator.mediaDevices.addEventListener('devicechange', loadAudioDevices)
+    return () => navigator.mediaDevices.removeEventListener('devicechange', loadAudioDevices)
+  })
+
   async function loadSettings() {
     const [p, s, t, v, k] = await Promise.all([
       window.api.getSettings(),
@@ -73,7 +78,7 @@
   function onTabChange(tab: Tab) {
     activeTab = tab
     if (tab === 'history') void loadHistory()
-    if (tab === 'audio') void loadVoices()
+    if (tab === 'audio') { void loadVoices(); void loadAudioDevices() }
   }
 
   async function loadHistory() {
